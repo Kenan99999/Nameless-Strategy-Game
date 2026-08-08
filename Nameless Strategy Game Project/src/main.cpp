@@ -56,6 +56,9 @@ bool PressedKeyP = 0;
 bool TroopChosen = 0;
 bool IsTileOkay = 1;
 bool ItIsAnEmptySlot = 0;
+bool IsCommanderHere = 0;
+bool CreditScreen = 0;
+bool MouseCleared = 0;
 int Key;
 int TempKey;
 troop MovingTroop;
@@ -77,7 +80,13 @@ int MapBorderX = 150;
 int MapBorderY = 0;
 
 // Functions
-
+void DrawCreditsandChangelogScreen() {
+    DrawText("Changelog:", 10, 10, 30, BLACK);
+    DrawText("Credits:", 360, 10, 30, BLACK);
+    DrawText("-Added changelog\nand credits\n-Minor bugfixes\n-Tick texture\ndoesn't have\na background now", 10, 70, 25, BLACK);
+    DrawText("Main Developer:\nKenan Mert Pamuk", 360, 70, 25, BLACK);
+    DrawText("Version: Pre-alpha 0.3.1", 10, 360, 30, BLACK);
+}
 void GetMouseCoords() {
     MouseX = GetMouseX();
     MouseY = GetMouseY();
@@ -85,9 +94,11 @@ void GetMouseCoords() {
 }
 void DrawTitleScreen(Texture2D Logo) {
     DrawText("Click anywhere to start a game", 20, 200, 38, BLACK);
-    DrawText("Version: Pre-alpha 0.3", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.3.1", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
+    DrawRectangle(500, 340, 140, 50, GRAY);
+    DrawText("Changelog\nand Credits", 505, 345, 20, BLACK);
 }
 void DrawLogoScreen(Texture2D Logo) {
     DrawTextureEx(Logo, {150, 10}, 0.0f, 7.0f, WHITE);
@@ -248,9 +259,7 @@ void DrawTileSelected() {
 void CommanderPlacement(Image image, int Map_width, int Map_height) {
     DrawTileSelected();
     ChangeTileSelected(image, Map_width, Map_height);
-    if(TileSelected == 0) {
-        DrawText("Place your commander", 10, 300, 30, BLACK);
-    }
+    DrawText("Select a tile to\nplace your commander\nchoose wisely", MapBorderX + 10, 310, 26, BLACK);
     if(TileSelected != 0) {
         if(MouseClicked) GetMouseCoords();
         DrawCheckboxes();
@@ -318,7 +327,7 @@ void AddBoughtTroopToTheTroopBank() {
                 switch(BoughtTroop) {
                     case 1:
                         BlueTroopBank[i] = infantry;
-                        BlueTroopBank[i].side = 'r';
+                        BlueTroopBank[i].side = 'b';
                         BlueWarPoints -= 5;
                         if(BlueWarPoints < 0) {
                             cout << "You don't have enough War Points!" << endl;
@@ -328,7 +337,7 @@ void AddBoughtTroopToTheTroopBank() {
                         break;
                     case 2:
                         BlueTroopBank[i] = medic;
-                        BlueTroopBank[i].side = 'r';
+                        BlueTroopBank[i].side = 'b';
                         BlueWarPoints -= 10;
                         if(BlueWarPoints < 0) {
                             cout << "You don't have enough War Points!" << endl;
@@ -388,12 +397,16 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                     if(Troops[TileSelected - 1][i].side == 'b') {
                         IsTileOkay = 0;
                     }
+                    if(Troops[TileSelected - 1][i].side == 'r' && Troops[TileSelected - 1][i].type == 'c') {
+                        IsCommanderHere = 1;
+                    }
                     else if(Troops[TileSelected - 1][i].type == 'e' && !EmptyCounter) {
                         EmptyCounter = i + 1;
                     }
                 }
                 if(!EmptyCounter) {
                     IsTileOkay = 0;
+                    IsCommanderHere = 0;
                 }
                 if(IsTileOkay) {
                     Troops[TileSelected - 1][EmptyCounter - 1] = RedTroopBank[Key - 1];
@@ -409,6 +422,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                     TroopChosen = 0;
                     TileSelected = 0;
                     IsTileOkay = 1;
+                    IsCommanderHere = 0;
                     EmptyCounter = 0;
                     Key = 0;
                     return;
@@ -431,6 +445,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
             TroopChosen = 0;
             TileSelected = 0;
             IsTileOkay = 1;
+            IsCommanderHere = 0;
             EmptyCounter = 0;
             Key = 0;
         }
@@ -479,14 +494,18 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                     if(Troops[TileSelected - 1][i].side == 'r') {
                         IsTileOkay = 0;
                     }
+                    if(Troops[TileSelected - 1][i].side == 'b' && Troops[TileSelected - 1][i].type == 'c') {
+                        IsCommanderHere = 1;
+                    }
                     else if(Troops[TileSelected - 1][i].type == 'e' && !EmptyCounter) {
                         EmptyCounter = i + 1;
                     }
                 }
                 if(!EmptyCounter) {
                     IsTileOkay = 0;
+                    IsCommanderHere = 0;
                 }
-                if(IsTileOkay) {
+                if(IsTileOkay || IsCommanderHere) {
                     Troops[TileSelected - 1][EmptyCounter - 1] = BlueTroopBank[Key - 1];
                     BlueTroopBank[Key - 1] = empty;
                     cout << "a(n) " << Troops[TileSelected - 1][EmptyCounter - 1].type << " troop succesfully placed" << endl;
@@ -502,6 +521,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                     IsTileOkay = 1;
                     EmptyCounter = 0;
                     Key = 0;
+                    IsCommanderHere = 0;
                     return;
                 }
                 else {
@@ -524,6 +544,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
             IsTileOkay = 1;
             EmptyCounter = 0;
             Key = 0;
+            IsCommanderHere = 0;
             SelectedTroop.type = 'n';
         }
         else if(Checkbox == 1 && (SelectedTroop.type == 'e' || SelectedTroop.type == 'n')) {
@@ -742,6 +763,9 @@ void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon,
         MoveScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Red_Icon, Blue_Icon);
     }
 }
+void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Tick, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon) {
+    return;
+}
 void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Tick, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon) {
     if(Round == 0 || Round == 1) {
         CommanderPlacement(Map, Map_width, Map_height);
@@ -754,7 +778,7 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
         DrawText("Buy Troop\n/Skip Round", MapBorderX + 15, MapBorderY + Map_height + 55, 15, BLACK);
         DrawText("Move/Place\nTroop", MapBorderX + 145, MapBorderY + Map_height + 55, 15, BLACK);
         DrawText("Delete\nTroop", MapBorderX + 275, MapBorderY + Map_height + 55, 15, BLACK);
-        DrawText("Gameplay\n tip:\nWar Points\nwill increase\nrandomly\nevery\n5 rounds", MapBorderX - 140, MapBorderY + 10, 23, BLACK);
+        DrawText("Gameplay\ntip:\nWar Points\nwill increase\nrandomly\nevery\n5 rounds", MapBorderX - 140, MapBorderY + 10, 23, BLACK);
         if(MouseClicked) {
             GetMouseCoords();
             if(MouseX >= MapBorderX + 10 && MouseX <= MapBorderX + 110 && MouseY >= MapBorderY + Map_height + 50 && MouseY <= MapBorderY + Map_height + 90) {
@@ -805,7 +829,7 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
         DrawMoveandPlaceTroopsScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Red_Icon, Blue_Icon);
     }
     else if(Action == 3) {
-
+        DrawDeleteTroopsScreen(Map, Infantry_Icon, Medic_Icon, WarPoint, Tick, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon);
     }
 }
 
@@ -845,15 +869,20 @@ int main() {
         MouseClicked = IsMouseButtonPressed(0);
 
         if(MouseClicked && GetTime() > 4) { // Mouse Controls
-
-            if(GameStarted) {
-                GetMouseCoords();
+            GetMouseCoords();
+            if(!GameStarted && MouseX >= 500 && MouseX <= 640 && MouseY >= 340 && MouseY <= 390 && !CreditScreen) {
+                CreditScreen = 1;
             }
-
-            if(GameStarted == false) {
+            else if(CreditScreen) {
+                CreditScreen = 0;
+            }
+            else if(GameStarted == false && !CreditScreen) {
                 GameStarted = true;
             }
-
+            if(!MouseCleared && GameStarted) {
+                ClearMouseCoords();
+                MouseCleared = 1;
+            }
         }
         if((Round + 1) % 5 == 0 && Round > 0) {
             IncreaseControl = 1;
@@ -875,6 +904,7 @@ int main() {
             }
             else { // Title screen
                 if(GetTime() <= 4) DrawLogoScreen(Logo);
+                else if(CreditScreen) DrawCreditsandChangelogScreen();
                 else DrawTitleScreen(Logo);
             }
 

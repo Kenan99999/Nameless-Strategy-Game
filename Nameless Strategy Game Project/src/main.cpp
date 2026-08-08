@@ -40,6 +40,8 @@ int PixelY = 0;
 int MouseX = 0;
 int MouseY = 0;
 int TileSelected = 0;
+int FromTileSelected = 0;
+int ToTileSelected = 0;
 int Round = 0;
 bool MouseClicked = 0;
 int Checkbox = 0;
@@ -53,10 +55,13 @@ bool PressedKeyC = 0;
 bool PressedKeyP = 0;
 bool TroopChosen = 0;
 bool IsTileOkay = 1;
+bool ItIsAnEmptySlot = 0;
 int Key;
 int TempKey;
+troop MovingTroop;
 troop SelectedTroop;
 Texture2D TempDraw;
+Texture2D RedBlue;
 const int Infantry_Cost = 5;
 const int Medic_Cost = 10;
 troop RedTroopBank[10];
@@ -73,9 +78,14 @@ int MapBorderY = 0;
 
 // Functions
 
+void GetMouseCoords() {
+    MouseX = GetMouseX();
+    MouseY = GetMouseY();
+    return;
+}
 void DrawTitleScreen(Texture2D Logo) {
     DrawText("Click anywhere to start a game", 20, 200, 38, BLACK);
-    DrawText("Version: Pre-alpha 0.2", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.3", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
 }
@@ -135,11 +145,11 @@ void DrawTroopBuyScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D
     DrawText("To skip don't buy\nanything and confirm.", MapBorderX, MapBorderY + 310, 35, BLACK);
     return;
 }
-int ControlChekcBoxes() { // Yes or No
-    if((MouseX >= 10 && MouseX <= 50 && MouseY >= 350 && MouseY <= 390) || IsKeyPressed(KEY_Q)) {
+int ControlCheckboxes() { // Yes or No
+    if(IsKeyPressed(KEY_Q)) {
         return 1;
     }
-    else if ((MouseX >= 60 && MouseX <= 100 && MouseY >= 350 && MouseY <= 390) || IsKeyPressed(KEY_E)){
+    else if (IsKeyPressed(KEY_E)){
         return 2;
     }
     else {
@@ -191,11 +201,6 @@ void DrawTurn(int Map_width, int Map_height, Texture2D WarPoint) {
     }
     return;
 }
-void GetMouseCoords() {
-    MouseX = GetMouseX();
-    MouseY = GetMouseY();
-    return;
-}
 void ChangeTileSelected(Image image, int Map_width, int Map_height) {
     if(MouseX >= MapBorderX && MouseX <= MapBorderX + Map_width && MouseY >= MapBorderY && MouseY <= MapBorderY + Map_height) {
         PixelX = MouseX - MapBorderX;
@@ -242,14 +247,14 @@ void DrawTileSelected() {
 }
 void CommanderPlacement(Image image, int Map_width, int Map_height) {
     DrawTileSelected();
+    ChangeTileSelected(image, Map_width, Map_height);
     if(TileSelected == 0) {
         DrawText("Place your commander", 10, 300, 30, BLACK);
-        ChangeTileSelected(image, Map_width, Map_height);
     }
     if(TileSelected != 0) {
         if(MouseClicked) GetMouseCoords();
         DrawCheckboxes();
-        Checkbox = ControlChekcBoxes();
+        Checkbox = ControlCheckboxes();
         if(Checkbox == 1) {
             if(Troops[TileSelected - 1][0].type != 'e') {
                 cout << "can't place a commander on enemy tile!" << endl;
@@ -391,9 +396,9 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                     IsTileOkay = 0;
                 }
                 if(IsTileOkay) {
-                    Troops[TileSelected][EmptyCounter - 1] = RedTroopBank[Key - 1];
+                    Troops[TileSelected - 1][EmptyCounter - 1] = RedTroopBank[Key - 1];
                     RedTroopBank[Key - 1] = empty;
-                    cout << "a(n) " << Troops[TileSelected][EmptyCounter - 1].type << " troop succesfully placed" << endl;
+                    cout << "a(n) " << Troops[TileSelected - 1][EmptyCounter - 1].type << " troop succesfully placed" << endl;
                     Round++;
                     Action = 0;
                     PressedKeyC = 0;
@@ -415,7 +420,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
             }
         }
         DrawCheckboxes();
-        Checkbox = ControlChekcBoxes();
+        Checkbox = ControlCheckboxes();
         if(Checkbox == 2) {
             Action = 0;
             PressedKeyC = 0;
@@ -482,9 +487,9 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                     IsTileOkay = 0;
                 }
                 if(IsTileOkay) {
-                    Troops[TileSelected][EmptyCounter - 1] = BlueTroopBank[Key - 1];
+                    Troops[TileSelected - 1][EmptyCounter - 1] = BlueTroopBank[Key - 1];
                     BlueTroopBank[Key - 1] = empty;
-                    cout << "a(n) " << Troops[TileSelected][EmptyCounter - 1].type << " troop succesfully placed" << endl;
+                    cout << "a(n) " << Troops[TileSelected - 1][EmptyCounter - 1].type << " troop succesfully placed" << endl;
                     Round++;
                     Action = 0;
                     PressedKeyC = 0;
@@ -506,7 +511,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
             }
         }
         DrawCheckboxes();
-        Checkbox = ControlChekcBoxes();
+        Checkbox = ControlCheckboxes();
         if(Checkbox == 2) {
             Action = 0;
             PressedKeyC = 0;
@@ -519,6 +524,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
             IsTileOkay = 1;
             EmptyCounter = 0;
             Key = 0;
+            SelectedTroop.type = 'n';
         }
         else if(Checkbox == 1 && (SelectedTroop.type == 'e' || SelectedTroop.type == 'n')) {
             cout << "Please choose an appropriate troop" << endl;
@@ -528,7 +534,187 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
         }
     }
 }
-void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height) {
+void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height, Texture2D Red_Icon, Texture2D Blue_Icon) {
+    if(!FromTileSelected) {
+        DrawText("Select a tile to move a troop\nfrom that tile", MapBorderX + 10, MapBorderY + 310, 25, BLACK);
+        ChangeTileSelected(Map, Map_width, Map_height);
+        DrawTileSelected();
+        DrawCheckboxes();
+        Checkbox = ControlCheckboxes();
+    }
+    if(Checkbox == 1) {
+        FromTileSelected = TileSelected;
+        Checkbox = 0;
+    }
+    else if(Checkbox == 2) {
+        FromTileSelected = 0;
+        TileSelected = 0;
+        ItIsAnEmptySlot = 0;
+        TroopChosen = 0;
+        Action = 0;
+        MovingTroop.type = 'n';
+        Key = 0;
+        Checkbox = 0;
+        return;
+    }
+    if(FromTileSelected != 0) {
+        if(!TroopChosen) {
+            for(int i = 0; i < 10; ++i) {
+                switch(Troops[FromTileSelected - 1][i].type) {
+                    case 'e':
+                        TempDraw = Empty_Icon;
+                        break;
+                    case 'c':
+                        TempDraw = Commander_Icon;
+                        break;
+                    case 'm':
+                        TempDraw = Medic_Icon;
+                        break;
+                    case 'i':
+                        TempDraw = Infantry_Icon;
+                        break;
+                }
+                switch(Troops[FromTileSelected - 1][i].side) {
+                    case 'r':
+                        RedBlue = Red_Icon;
+                        break;
+                    case 'b':
+                        RedBlue = Blue_Icon;
+                        break;
+                    case 'e':
+                        ItIsAnEmptySlot = 1;
+                        break;
+                    default: 
+                        break;
+                }
+                DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
+                if(!ItIsAnEmptySlot) { 
+                    DrawTexture(RedBlue, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
+                }
+                DrawText(TextFormat("%d", i), MapBorderX - (((i + 1) % 2) * 60 + 84), (i / 2) * 60 + 10, 15, BLACK);
+                ItIsAnEmptySlot = 0;
+                TempKey = GetKeyPressed() - 47;
+                if(TempKey >= 1 && TempKey <= 10) {
+                    Key = TempKey;
+                }
+                if(Key > 0 && Key < 11) {
+                    DrawTexture(Tick, MapBorderX - (((Key) % 2) * 60 + 75), ((Key - 1) / 2) * 60 + 10, WHITE);
+                    MovingTroop = Troops[FromTileSelected - 1][Key - 1];
+                }
+                if(Checkbox == 1 && !(MovingTroop.type == 'n')) {
+                    TroopChosen = 1;
+                    Checkbox = 0;
+                    TileSelected = 0;
+                    break;
+                }
+                else if(Checkbox == 2) {
+                    FromTileSelected = 0;
+                    TileSelected = 0;
+                    ItIsAnEmptySlot = 0;
+                    TroopChosen = 0;
+                    Action = 0;
+                    MovingTroop.type = 'n';
+                    Key = 0;
+                    Checkbox = 0;
+                    PressedKeyM = 0;
+                    PressedKeyP = 0;
+                    PressedKeyC = 0;
+                    return;
+                }
+                DrawCheckboxes();
+                Checkbox = ControlCheckboxes();
+            }
+        }
+        else {
+            if(Round % 2 == 0) {
+                if(MovingTroop.side == 'b') {
+                    cout << "You can't move an enemy troop" << endl;
+                    TroopChosen = 0;
+                }
+                else if(MovingTroop.side == 'e') {
+                    cout << "That slot is empty!" << endl;
+                    TroopChosen = 0;
+                }
+            }
+            else {
+                if(MovingTroop.side == 'r') {
+                    cout << "You can't move an enemy troop" << endl;
+                    TroopChosen = 0;
+                }
+                else if(MovingTroop.side == 'e') {
+                    cout << "That slot is empty!" << endl;
+                    TroopChosen = 0;
+                } 
+            }
+            if(TroopChosen) {
+                IsTileOkay = 0;
+                DrawTileSelected();
+                ChangeTileSelected(Map, Map_width, Map_height);
+                DrawCheckboxes();
+                Checkbox = ControlCheckboxes();
+                if(Checkbox == 1) {
+                    ToTileSelected = TileSelected;
+                    for(auto i : Tiles[ToTileSelected - 1]) {
+                        if(i == FromTileSelected - 1) {
+                            cout << i << " "  << FromTileSelected - 1 << endl;
+                            IsTileOkay = 1;
+                            break;
+                        }
+                    }
+                    if(IsTileOkay) {
+                        for(int i = 0; i < 10; ++i) {
+                            if(Troops[ToTileSelected - 1][i].type == 'e') {
+                                Troops[FromTileSelected - 1][Key - 1] = empty;
+                                Troops[ToTileSelected - 1][i] = MovingTroop;
+                                Round++;
+                                ToTileSelected = 0;
+                                IsTileOkay = 1;
+                                Checkbox = 0;
+                                FromTileSelected = 0;
+                                TileSelected = 0;
+                                ItIsAnEmptySlot = 0;
+                                TroopChosen = 0;
+                                Action = 0;
+                                MovingTroop.type = 'n';
+                                Key = 0;
+                                Checkbox = 0;
+                                PressedKeyM = 0;
+                                PressedKeyP = 0;
+                                PressedKeyC = 0;
+                                return;
+                            }
+                        }
+                        IsTileOkay = 0;
+                        cout << "Tile is full" << endl;
+                        Checkbox = 0;
+                    }
+                    else {
+                        cout << "You can't move troops more or less than 1 tile" << endl;
+                        Checkbox = 0;
+                    }
+                }
+                else if(Checkbox == 2) {
+                    ToTileSelected = 0;
+                    IsTileOkay = 1;
+                    Checkbox = 0;
+                    FromTileSelected = 0;
+                    TileSelected = 0;
+                    ItIsAnEmptySlot = 0;
+                    TroopChosen = 0;
+                    Action = 0;
+                    MovingTroop.type = 'n';
+                    Key = 0;
+                    Checkbox = 0;
+                    PressedKeyM = 0;
+                    PressedKeyP = 0;
+                    PressedKeyC = 0;
+                    return;
+                }
+            }
+        }
+    }
+}
+void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height, Texture2D Red_Icon, Texture2D Blue_Icon) {
     if(!PressedKeyC && !PressedKeyP && IsKeyPressed(KEY_M)) {
         PressedKeyM = 1;
     }
@@ -552,8 +738,11 @@ void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon,
         PressedKeyP = 0;
         return;
     }
+    else if(PressedKeyM) {
+        MoveScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Red_Icon, Blue_Icon);
+    }
 }
-void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Tick, Texture2D Commander_Icon, Texture2D Empty_Icon) {
+void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Tick, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon) {
     if(Round == 0 || Round == 1) {
         CommanderPlacement(Map, Map_width, Map_height);
     }
@@ -565,6 +754,7 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
         DrawText("Buy Troop\n/Skip Round", MapBorderX + 15, MapBorderY + Map_height + 55, 15, BLACK);
         DrawText("Move/Place\nTroop", MapBorderX + 145, MapBorderY + Map_height + 55, 15, BLACK);
         DrawText("Delete\nTroop", MapBorderX + 275, MapBorderY + Map_height + 55, 15, BLACK);
+        DrawText("Gameplay\n tip:\nWar Points\nwill increase\nrandomly\nevery\n5 rounds", MapBorderX - 140, MapBorderY + 10, 23, BLACK);
         if(MouseClicked) {
             GetMouseCoords();
             if(MouseX >= MapBorderX + 10 && MouseX <= MapBorderX + 110 && MouseY >= MapBorderY + Map_height + 50 && MouseY <= MapBorderY + Map_height + 90) {
@@ -582,7 +772,7 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
     else if(Action == 1) {
         DrawTroopBuyScreen(Infantry_Icon, Medic_Icon, WarPoint);
         DrawCheckboxes();
-        Checkbox = ControlChekcBoxes();
+        Checkbox = ControlCheckboxes();
         if(Checkbox == 2) {
             Action = 0;
             Checkbox = 0;
@@ -612,7 +802,10 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
         TroopBuying(Tick);
     }
     else if(Action == 2) {
-        DrawMoveandPlaceTroopsScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height);
+        DrawMoveandPlaceTroopsScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Red_Icon, Blue_Icon);
+    }
+    else if(Action == 3) {
+
     }
 }
 
@@ -622,6 +815,7 @@ int main() {
     CreateMapBonds();
     InitWindow(screenWidth, screenHeight, "Nameless Strategy Game");
     SelectedTroop.type = 'n';
+    MovingTroop.type = 'n';
     // Map and Icons
     Image Tick_png = LoadImage("resources/Yes.png");
     Image Infantry_png = LoadImage("resources/Infantry.png");
@@ -631,6 +825,8 @@ int main() {
     Image Commander_png = LoadImage("resources/Commander.png");
     Image Logo_png = LoadImage("resources/Logo.png");
     Image Empty_png = LoadImage("resources/Empty.png");
+    Image Red_png = LoadImage("resources/Red.png");
+    Image Blue_png = LoadImage("resources/Blue.png");
     Texture2D Tick = LoadTextureFromImage(Tick_png);
     Texture2D Infantry_Icon = LoadTextureFromImage(Infantry_png);
     Texture2D Medic_Icon = LoadTextureFromImage(Medic_png);
@@ -639,7 +835,8 @@ int main() {
     Texture2D Commander_Icon = LoadTextureFromImage(Commander_png);
     Texture2D Logo = LoadTextureFromImage(Logo_png);
     Texture2D Empty_Icon = LoadTextureFromImage(Empty_png);
-
+    Texture2D Red_Icon = LoadTextureFromImage(Red_png);    
+    Texture2D Blue_Icon = LoadTextureFromImage(Blue_png);
 
     SetTargetFPS(60);
      
@@ -672,7 +869,7 @@ int main() {
             if(GameStarted) { // Game Started
                 if(IncreaseControl && !Increased) IncreaseWarPoints();
                 DrawTexture(Map, MapBorderX, MapBorderY, WHITE); // Draw map
-                DrawActions(Map_png, Map.width, Map.height, Infantry_Icon, Medic_Icon, WarPoint, Tick, Commander_Icon, Empty_Icon);
+                DrawActions(Map_png, Map.width, Map.height, Infantry_Icon, Medic_Icon, WarPoint, Tick, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon);
                 DrawTurn(Map.width, Map.height, WarPoint);
                 DrawRound(Map.width, Map.height);
             }
@@ -691,6 +888,8 @@ int main() {
     UnloadImage(Commander_png);
     UnloadImage(Logo_png);
     UnloadImage(Empty_png);
+    UnloadImage(Red_png);    
+    UnloadImage(Blue_png);
     UnloadTexture(Map);
     UnloadTexture(Infantry_Icon);
     UnloadTexture(Medic_Icon);
@@ -699,6 +898,8 @@ int main() {
     UnloadTexture(Commander_Icon);
     UnloadTexture(Logo);
     UnloadTexture(Empty_Icon);
+    UnloadTexture(Red_Icon);
+    UnloadTexture(Blue_Icon);    
     CloseWindow();
     return 0;
 }

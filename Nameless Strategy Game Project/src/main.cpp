@@ -83,9 +83,9 @@ int MapBorderY = 0;
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("-Added changelog\nand credits\n-Minor bugfixes\n-Tick texture\ndoesn't have\na background now", 10, 70, 25, BLACK);
+    DrawText("- Added deleting troops\n- Minor bugfixes", 10, 70, 25, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.3.1", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.4", 10, 360, 30, BLACK);
 }
 void GetMouseCoords() {
     MouseX = GetMouseX();
@@ -94,7 +94,7 @@ void GetMouseCoords() {
 }
 void DrawTitleScreen(Texture2D Logo) {
     DrawText("Click anywhere to start a game", 20, 200, 38, BLACK);
-    DrawText("Version: Pre-alpha 0.3.1", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.4", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
     DrawRectangle(500, 340, 140, 50, GRAY);
@@ -764,6 +764,196 @@ void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon,
     }
 }
 void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Tick, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon) {
+    if(TileSelected == 0) {
+        DrawTileSelected();
+        ChangeTileSelected(Map, Map.width, Map.height);
+    }
+    else {
+        if(!TroopChosen) {
+            for(int i = 0; i < 10; ++i) {
+                switch(Troops[TileSelected - 1][i].type) {
+                    case 'e':
+                        TempDraw = Empty_Icon;
+                        break;
+                    case 'c':
+                        TempDraw = Commander_Icon;
+                        break;
+                    case 'm':
+                        TempDraw = Medic_Icon;
+                        break;
+                    case 'i':
+                        TempDraw = Infantry_Icon;
+                        break;
+                }
+                switch(Troops[TileSelected - 1][i].side) {
+                    case 'r':
+                        RedBlue = Red_Icon;
+                        break;
+                    case 'b':
+                        RedBlue = Blue_Icon;
+                        break;
+                    case 'e':
+                        ItIsAnEmptySlot = 1;
+                        break;
+                    default: 
+                        break;
+                }
+                DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
+                if(!ItIsAnEmptySlot) { 
+                    DrawTexture(RedBlue, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
+                }
+                DrawText(TextFormat("%d", i), MapBorderX - (((i + 1) % 2) * 60 + 84), (i / 2) * 60 + 10, 15, BLACK);
+                ItIsAnEmptySlot = 0;
+                TempKey = GetKeyPressed() - 47;
+                if(TempKey >= 1 && TempKey <= 10) {
+                    Key = TempKey;
+                }
+                if(Key > 0 && Key < 11) {
+                    DrawTexture(Tick, MapBorderX - (((Key) % 2) * 60 + 75), ((Key - 1) / 2) * 60 + 10, WHITE);
+                }
+            }
+            DrawCheckboxes();
+            Checkbox = ControlCheckboxes();
+            if(Checkbox == 1) {
+                TroopChosen = 1;
+            }
+            else if(Checkbox == 2) {
+                TroopChosen = 0;
+                ItIsAnEmptySlot = 0;
+                Action = 0;
+                Checkbox = 0;
+                TileSelected = 0;
+                Key = 0;
+                return;
+            }
+        }
+        else {
+            if(Round % 2 == 0) {
+                if(Troops[TileSelected - 1][Key - 1].side == 'b') {
+                    cout << "You can't delete an enemy troop" << endl;
+                    TroopChosen = 0;
+                }
+                else if(Troops[TileSelected - 1][Key - 1].side == 'e') {
+                    cout << "That's an empty slot!" << endl;
+                    TroopChosen = 0;
+                }
+                else if(Troops[TileSelected - 1][Key - 1].type == 'c') {
+                    cout << "You can't delete your commander!" << endl;
+                    TroopChosen = 0;
+                }
+                else if(Troops[TileSelected - 1][Key - 1].side == 'r') {
+                    switch(Troops[TileSelected - 1][Key - 1].type) {
+                        case 'i':
+                            if(Troops[TileSelected - 1][Key - 1].health == 10) {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                                RedWarPoints += 3;
+                            }
+                            else if(Troops[TileSelected - 1][Key - 1].health >= 7 && Troops[TileSelected - 1][Key - 1].health <= 9) {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                                RedWarPoints += 2;
+                            }
+                            else if(Troops[TileSelected - 1][Key - 1].health >= 4 && Troops[TileSelected - 1][Key - 1].health <= 6) {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                                RedWarPoints += 1;
+                            }
+                            else {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                            }
+                            break;
+                        case 'm':
+                            if(Troops[TileSelected - 1][Key - 1].health == 5) {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                                RedWarPoints += 6;
+                            }
+                            else if(Troops[TileSelected - 1][Key - 1].health >= 3 && Troops[TileSelected - 1][Key - 1].health <= 4) {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                                RedWarPoints += 4;
+                            }
+                            else if(Troops[TileSelected - 1][Key - 1].health == 2) {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                                RedWarPoints += 2;
+                            }
+                            else {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                    Round++;
+                    TroopChosen = 0;
+                    ItIsAnEmptySlot = 0;
+                    Action = 0;
+                    Checkbox = 0;
+                    TileSelected = 0;
+                    Key = 0;
+                    return;
+                }
+            }
+            else {
+                if(Troops[TileSelected - 1][Key - 1].side == 'r') {
+                    cout << "You can't delete an enemy troop" << endl;
+                    TroopChosen = 0;
+                }
+                else if(Troops[TileSelected - 1][Key - 1].side == 'e') {
+                    cout << "That's an empty slot!" << endl;
+                    TroopChosen = 0;
+                }
+                else if(Troops[TileSelected - 1][Key - 1].type == 'c') {
+                    cout << "You can't delete your commander!" << endl;
+                    TroopChosen = 0;
+                }
+                else if(Troops[TileSelected - 1][Key - 1].side == 'b') {
+                    switch(Troops[TileSelected - 1][Key - 1].type) {
+                        case 'i':
+                            if(Troops[TileSelected - 1][Key - 1].health == 10) {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                                BlueWarPoints += 3;
+                            }
+                            else if(Troops[TileSelected - 1][Key - 1].health >= 7 && Troops[TileSelected - 1][Key - 1].health <= 9) {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                                BlueWarPoints += 2;
+                            }
+                            else if(Troops[TileSelected - 1][Key - 1].health >= 4 && Troops[TileSelected - 1][Key - 1].health <= 6) {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                                BlueWarPoints += 1;
+                            }
+                            else {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                            }
+                            break;
+                        case 'm':
+                            if(Troops[TileSelected - 1][Key - 1].health == 5) {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                                BlueWarPoints += 6;
+                            }
+                            else if(Troops[TileSelected - 1][Key - 1].health >= 3 && Troops[TileSelected - 1][Key - 1].health <= 4) {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                                BlueWarPoints += 4;
+                            }
+                            else if(Troops[TileSelected - 1][Key - 1].health == 2) {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                                BlueWarPoints += 2;
+                            }
+                            else {
+                                Troops[TileSelected - 1][Key - 1] = empty;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                    Round++;
+                    TroopChosen = 0;
+                    ItIsAnEmptySlot = 0;
+                    Action = 0;
+                    Checkbox = 0;
+                    TileSelected = 0;
+                    Key = 0;
+                    return;
+                }
+            }
+        }
+    }
     return;
 }
 void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Tick, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon) {

@@ -13,7 +13,7 @@ troop commander {
     'c',
     'e',
     1,
-    1,
+    0,
     0,
     0
 };
@@ -30,7 +30,7 @@ troop infantry {
     'e',
     10,
     2,
-    2,
+    1,
     0
 };
 troop medic {
@@ -38,7 +38,7 @@ troop medic {
     'e',
     5,
     0,
-    0,
+    1,
     2
 };
 
@@ -103,6 +103,20 @@ const int MapBorderX = 150;
 const int MapBorderY = 0;
 
 // Functions
+void ReArrangeTroops() {
+    for(int i = 0; i < 4; ++i) {
+        for(int j = 0; j < 10; ++j) {
+            troop temp;
+            if(Troops[i][j].type == 'e') {
+                for(int k = j; k < 9; ++k) {
+                    temp = Troops[i][k];
+                    Troops[i][k] = Troops[i][k + 1];
+                    Troops[i][k + 1] = temp;
+                }
+            }
+        }
+    }
+}
 void restart() {
     GameStarted = 0;
     Action = 0;
@@ -180,40 +194,107 @@ void Combat() {
         if(TotalBlueAttack / 3) TotalBlueAttack += (rand() % (TotalBlueAttack / 3));
         if(TotalBlueDefense / 3) TotalBlueDefense += (rand() % (TotalBlueDefense / 3));
         if(TotalBlueHeal / 3) TotalBlueHeal += (rand() % (TotalBlueHeal / 3));
-        TakenRedDamage = TotalBlueAttack - TotalRedDefense - TotalRedHeal;
-        TakenBlueDamage = TotalRedAttack - TotalBlueDefense - TotalBlueHeal;
-        if(BlueTroopCount) {
-            if(TakenBlueDamage % BlueTroopCount) {
-                TakenBlueDamage -= TakenBlueDamage % BlueTroopCount;
-            }
+        if(TotalBlueAttack > TotalRedDefense)  TakenRedDamage = TotalBlueAttack - TotalRedDefense;
+        if(TotalRedAttack > TotalBlueDefense) TakenBlueDamage = TotalRedAttack - TotalBlueDefense;
+        if(!TakenBlueDamage && RedTroopCount) {
+            TakenBlueDamage = RedTroopCount;
         }
-        if(RedTroopCount) {
-            if(TakenRedDamage % RedTroopCount) {
-                TakenRedDamage -= TakenRedDamage % RedTroopCount;
-            }
+        if(!TakenRedDamage && BlueTroopCount) {
+            TakenRedDamage = BlueTroopCount;
         }
+        cout << TakenRedDamage << " " << TakenBlueDamage << "tile: " << i + 1 << endl;
         for(int j = 0; j < 10; ++j) {
             switch(Troops[i][j].side) {
                 case 'r':
-                    if(Troops[i][j].health > TakenRedDamage) {
-                        Troops[i][j].health -= TakenRedDamage;
-                        TakenRedDamage = 0;
-                    }
-                    else {
-                        TakenRedDamage -= Troops[i][j].health;
-                        Troops[i][j] = empty;
+                    if(TotalRedHeal > 0) {
+                        int AvalibleHeal = 0;
+                        switch(Troops[i][j].type) {
+                            case 'i':
+                                AvalibleHeal = Infantry_Full - Troops[i][j].health;
+                                if(AvalibleHeal > TotalRedHeal) {
+                                    Troops[i][j].health += TotalRedHeal;
+                                    TotalRedHeal = 0;
+                                }
+                                else {
+                                    Troops[i][j].health = Infantry_Full;
+                                    TotalRedHeal -= Infantry_Full - AvalibleHeal;
+                                }
+                                break;
+                            case 'm':
+                                AvalibleHeal = Medic_Full - Troops[i][j].health;
+                                if(AvalibleHeal > TotalRedHeal) {
+                                    Troops[i][j].health += TotalRedHeal;
+                                    TotalRedHeal = 0;
+                                }
+                                else {
+                                    Troops[i][j].health = Medic_Full;
+                                    TotalRedHeal -= Medic_Full - AvalibleHeal;
+                                }
+                                break;
+                            default:
+                                break;
+                        }
                     }
                     break;
                 case 'b':
-                    if(Troops[i][j].health > TakenBlueDamage) {
-                        Troops[i][j].health -= TakenBlueDamage;
-                        TakenBlueDamage = 0;
-                    }
-                    else {
-                        TakenBlueDamage -= Troops[i][j].health;
-                        Troops[i][j] = empty;
+                    if(TotalBlueHeal > 0) {
+                        int AvalibleHeal = 0;
+                        switch(Troops[i][j].type) {
+                            case 'i':
+                                AvalibleHeal = Infantry_Full - Troops[i][j].health;
+                                if(AvalibleHeal > TotalBlueHeal) {
+                                    Troops[i][j].health += TotalBlueHeal;
+                                    TotalBlueHeal = 0;
+                                }
+                                else {
+                                    Troops[i][j].health = Infantry_Full;
+                                    TotalBlueHeal -= Infantry_Full - AvalibleHeal;
+                                }
+                                break;
+                            case 'm':
+                                AvalibleHeal = Medic_Full - Troops[i][j].health;
+                                if(AvalibleHeal > TotalBlueHeal) {
+                                    Troops[i][j].health += TotalBlueHeal;
+                                    TotalBlueHeal = 0;
+                                }
+                                else {
+                                    Troops[i][j].health = Medic_Full;
+                                    TotalBlueHeal -= Medic_Full - AvalibleHeal;
+                                }
+                                break;
+                            default:
+                                break;
+                        }
                     }
                     break;
+                default:
+                    break;
+            }
+        }
+        for(int j = 0; j < 10; ++j) {
+            if(Troops[i][j].type != 'c') {
+                switch(Troops[i][j].side) {
+                    case 'r':
+                        if(Troops[i][j].health > TakenRedDamage) {
+                            Troops[i][j].health -= TakenRedDamage;
+                            TakenRedDamage = 0;
+                        }
+                        else {
+                            TakenRedDamage -= Troops[i][j].health;
+                            Troops[i][j] = empty;
+                        }
+                        break;
+                    case 'b':
+                        if(Troops[i][j].health > TakenBlueDamage) {
+                            Troops[i][j].health -= TakenBlueDamage;
+                            TakenBlueDamage = 0;
+                        }
+                        else {
+                            TakenBlueDamage -= Troops[i][j].health;
+                            Troops[i][j] = empty;
+                        }
+                        break;
+                }
             }
         }
         if(BlueCommander && TakenBlueDamage) {
@@ -227,11 +308,11 @@ void Combat() {
     return;
 }
 void DrawCreditsandChangelogScreen() {
-    DrawText("Changelog:\nMAJOR UPDATE", 10, 10, 30, BLACK);
+    DrawText("Changelog:", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("- Added health\n- Added Combat\n- Added restarting\ngame\n- Added winning\n- Major and minor\nbugfixes", 10, 70, 25, BLACK);
+    DrawText("- Combat fixed\n- Fixed a bug that\nempty slots appear\nbetween troops", 10, 70, 25, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.5", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.5.1", 10, 360, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -274,7 +355,7 @@ void GetMouseCoords() {
 }
 void DrawTitleScreen(Texture2D Logo) {
     DrawText("Click anywhere to start a game", 20, 200, 38, BLACK);
-    DrawText("Version: Pre-alpha 0.5", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.5.1", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
     DrawRectangle(500, 340, 140, 50, GRAY);
@@ -755,6 +836,9 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
         Action = 0;
         MovingTroop.type = 'n';
         Key = 0;
+        PressedKeyM = 0;
+        PressedKeyC = 0;
+        PressedKeyP = 0;
         Checkbox = 0;
         return;
     }
@@ -1256,6 +1340,7 @@ int main() {
         }
         if(!CombatHappened) {
             Combat();
+            ReArrangeTroops();
         }
         ClearMouseCoords();
         MouseClicked = IsMouseButtonPressed(0);

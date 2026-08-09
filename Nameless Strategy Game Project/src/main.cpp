@@ -1,13 +1,13 @@
 #include <raylib.h>
 #include <bits/stdc++.h>
-
+#include <filesystem>
 struct troop {
     char type;
     char side;
-    int health;
-    int attack;
-    int defense;
-    int heal;
+    float health;
+    float attack;
+    float defense;
+    float heal;
 };
 troop commander {
     'c',
@@ -17,7 +17,7 @@ troop commander {
     0,
     0
 };
-troop empty {
+troop empty_troop {
     'e',
     'e',
     0,
@@ -42,9 +42,9 @@ troop medic {
     2
 };
 
-
-// Variables
 using namespace std;
+using namespace filesystem;
+// Variables
 bool GameStarted = 0;
 int Action = 0;
 int RedWarPoints = 10;
@@ -79,10 +79,17 @@ bool MouseCleared = 0;
 bool RedCommanderAvalible = 1;
 bool BlueCommanderAvalible = 1;
 bool CombatHappened = 0;
+bool SaveScreen = 0;
+bool LoadScreen = 0;
 int Restarted = 0;
 int LastRound = 0;
+int LastClickedX = 0;
+int LastClickedY = 0;
+int SelectedSave = 0;
+int index = 0;
 int Key;
 int TempKey;
+vector<string> GameSaves;
 troop MovingTroop;
 troop SelectedTroop;
 Texture2D TempDraw;
@@ -93,6 +100,7 @@ const int Medic_Cost = 10;
 troop RedTroopBank[10];
 troop BlueTroopBank[10];
 troop Troops[4][10];
+char SaveName[10];
 Color MouseColor = {255, 0, 0, 0};
 vector<vector<int>> Tiles(4);
 
@@ -103,6 +111,97 @@ const int MapBorderX = 150;
 const int MapBorderY = 0;
 
 // Functions
+
+
+void Saves() {
+    if(exists("saves")) {
+        for(const auto& file : directory_iterator("saves")) {
+            if(file.path().extension() == ".save") {
+                if(find(GameSaves.begin(), GameSaves.end(), file.path().filename().string()) == GameSaves.end()) GameSaves.push_back(file.path().filename().string());
+            }
+        }
+    }
+}
+void GameSave() {
+    DrawRectangle(100, 150, 450, 100, GRAY);
+    DrawText("File name:\n(Max 10 characters)", 100, 50, 40, BLACK);
+    DrawText("Press enter to save\nClick anywhere to cancel", 100, 260, 25, BLACK);
+    DrawText(SaveName, 110, 170, 50, BLACK);
+    TempKey = GetKeyPressed();
+    if(TempKey >= 65 && TempKey <= 90 && index <= 9) {
+        if(IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) SaveName[index] = TempKey;
+        else SaveName[index] = TempKey + 32;
+        index++;
+    }
+    else if(TempKey == 45 && index <= 9) {
+        if (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) {
+            SaveName[index] = 95;
+            index++;
+        }
+    }
+    else if(TempKey >= 48 && TempKey < 58 && index <= 9) {
+        SaveName[index] = TempKey;
+        index++;
+    }
+    else if(TempKey == KEY_BACKSPACE && index >= 1) {
+        SaveName[index - 1] = '\0';
+        index--;
+    }
+    if(IsKeyPressed(KEY_ENTER) && index >= 1) {
+        if(!exists("saves")) {
+            create_directory("saves");
+        }
+        if(GameSaves.size() >= 10) {
+            cout << "You can't create more than 10 saves!" << endl;
+            SaveScreen = 0;
+            index = 0;
+            return;
+        }
+        string file_addres = "saves/" + (string)SaveName + ".save";
+        ofstream File(file_addres);
+
+        if(File.is_open()) {
+            File << Round << endl;
+            File << RedWarPoints << endl;
+            File << BlueWarPoints << endl;
+            for(int i = 0; i < 10; ++i) {
+                File << RedTroopBank[i].type << endl;
+                File << RedTroopBank[i].side << endl;
+                File << RedTroopBank[i].health << endl;
+                File << RedTroopBank[i].attack << endl;
+                File << RedTroopBank[i].defense << endl;
+                File << RedTroopBank[i].heal << endl;
+            }
+            for(int i = 0; i < 10; ++i) {
+                File << BlueTroopBank[i].type << endl;
+                File << BlueTroopBank[i].side << endl;
+                File << BlueTroopBank[i].health << endl;
+                File << BlueTroopBank[i].attack << endl;
+                File << BlueTroopBank[i].defense << endl;
+                File << BlueTroopBank[i].heal << endl;
+            }
+            for(int i = 0; i < 4; ++i) {
+                for(int j = 0; j < 10; ++j) {
+                    File << Troops[i][j].type << endl;
+                    File << Troops[i][j].side << endl;
+                    File << Troops[i][j].health << endl;
+                    File << Troops[i][j].attack << endl;
+                    File << Troops[i][j].defense << endl;
+                    File << Troops[i][j].heal << endl;
+                }
+            }
+            File << CombatHappened << endl;
+        }
+
+        SaveScreen = 0;
+        index = 0;
+    }
+    if(MouseClicked) {
+        SaveScreen = 0;
+        index = 0;
+    }
+    return;
+}
 void ReArrangeTroops() {
     for(int i = 0; i < 4; ++i) {
         for(int j = 0; j < 10; ++j) {
@@ -149,22 +248,29 @@ void restart() {
     RedCommanderAvalible = 1;
     BlueCommanderAvalible = 1;
     CombatHappened = 0;
+    LastClickedX = 0;
+    LastClickedY = 0;
     LastRound = 0;
+    Action = 0;
+    SaveScreen = 0;
+    LoadScreen = 0;
+    SelectedSave = 0;
+    index = 0;
 }
 void Combat() {
     for(int i = 0; i < 4; ++i) {
-        int TotalRedAttack = 0;
-        int TotalRedDefense = 0;
-        int TotalRedHeal = 0;
-        int TakenRedDamage = 0;
-        int TotalBlueAttack = 0;
-        int TotalBlueDefense = 0;
-        int TotalBlueHeal = 0;
-        int RedTroopCount = 0;
-        int BlueTroopCount = 0;
-        int RedCommander = 0;
-        int BlueCommander = 0;
-        int TakenBlueDamage = 0;
+        float TotalRedAttack = 0;
+        float TotalRedDefense = 0;
+        float TotalRedHeal = 0;
+        float TakenRedDamage = 0;
+        float TotalBlueAttack = 0;
+        float TotalBlueDefense = 0;
+        float TotalBlueHeal = 0;
+        float RedTroopCount = 0;
+        float BlueTroopCount = 0;
+        float RedCommander = 0;
+        float BlueCommander = 0;
+        float TakenBlueDamage = 0;
         for(int j = 0; j < 10; ++j) {
             switch(Troops[i][j].side) {
                 case 'r':
@@ -188,14 +294,20 @@ void Combat() {
         if((!BlueTroopCount || !RedTroopCount ) && (!BlueCommander && !RedCommander)) {
             continue;
         }
-        if(TotalRedAttack / 3) TotalRedAttack += (rand() % (TotalRedAttack / 3));
-        if(TotalRedDefense / 3) TotalRedDefense += (rand() % (TotalRedDefense / 3));
-        if(TotalRedHeal / 3) TotalRedHeal += (rand() % (TotalRedHeal / 3));
-        if(TotalBlueAttack / 3) TotalBlueAttack += (rand() % (TotalBlueAttack / 3));
-        if(TotalBlueDefense / 3) TotalBlueDefense += (rand() % (TotalBlueDefense / 3));
-        if(TotalBlueHeal / 3) TotalBlueHeal += (rand() % (TotalBlueHeal / 3));
+        if(TotalRedAttack / 3 >= 1.0) TotalRedAttack += (rand() % (int)(TotalRedAttack / 3));
+        if(TotalRedDefense / 3 >= 1.0) TotalRedDefense += (rand() % (int)(TotalRedDefense / 3));
+        if(TotalRedHeal / 3 >= 1.0) TotalRedHeal += (rand() % (int)(TotalRedHeal / 3));
+        if(TotalBlueAttack / 3 >= 1.0) TotalBlueAttack += (rand() % (int)(TotalBlueAttack / 3));
+        if(TotalBlueDefense / 3 >= 1.0) TotalBlueDefense += (rand() % (int)(TotalBlueDefense / 3));
+        if(TotalBlueHeal / 3 >= 1.0) TotalBlueHeal += (rand() % (int)(TotalBlueHeal / 3));
         if(TotalBlueAttack > TotalRedDefense)  TakenRedDamage = TotalBlueAttack - TotalRedDefense;
         if(TotalRedAttack > TotalBlueDefense) TakenBlueDamage = TotalRedAttack - TotalBlueDefense;
+        if(RedCommander) {
+            TakenBlueDamage *= 1.5;
+        }
+        if(BlueCommander) {
+            TakenRedDamage *= 1.5;
+        }
         if(!TakenBlueDamage && RedTroopCount) {
             TakenBlueDamage = RedTroopCount;
         }
@@ -207,7 +319,7 @@ void Combat() {
             switch(Troops[i][j].side) {
                 case 'r':
                     if(TotalRedHeal > 0) {
-                        int AvalibleHeal = 0;
+                        float AvalibleHeal = 0;
                         switch(Troops[i][j].type) {
                             case 'i':
                                 AvalibleHeal = Infantry_Full - Troops[i][j].health;
@@ -238,7 +350,7 @@ void Combat() {
                     break;
                 case 'b':
                     if(TotalBlueHeal > 0) {
-                        int AvalibleHeal = 0;
+                        float AvalibleHeal = 0;
                         switch(Troops[i][j].type) {
                             case 'i':
                                 AvalibleHeal = Infantry_Full - Troops[i][j].health;
@@ -281,7 +393,7 @@ void Combat() {
                         }
                         else {
                             TakenRedDamage -= Troops[i][j].health;
-                            Troops[i][j] = empty;
+                            Troops[i][j] = empty_troop;
                         }
                         break;
                     case 'b':
@@ -291,7 +403,7 @@ void Combat() {
                         }
                         else {
                             TakenBlueDamage -= Troops[i][j].health;
-                            Troops[i][j] = empty;
+                            Troops[i][j] = empty_troop;
                         }
                         break;
                 }
@@ -310,9 +422,9 @@ void Combat() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("- Combat fixed\n- Fixed a bug that\nempty slots appear\nbetween troops", 10, 70, 25, BLACK);
+    DrawText("- Added saving and loading\n- Minor bugfixes", 10, 70, 25, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.5.1", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.6", 10, 360, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -355,7 +467,7 @@ void GetMouseCoords() {
 }
 void DrawTitleScreen(Texture2D Logo) {
     DrawText("Click anywhere to start a game", 20, 200, 38, BLACK);
-    DrawText("Version: Pre-alpha 0.5.1", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.6", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
     DrawRectangle(500, 340, 140, 50, GRAY);
@@ -451,12 +563,12 @@ void CreateMapBonds() {
 void ClearTroops() {
     for(int i = 0; i < 4; ++i) {
         for(int j = 0; j < 10; ++j) {
-            Troops[i][j] = empty;
+            Troops[i][j] = empty_troop;
         }
     }
     for(int i = 0; i < 10; ++i) {
-        RedTroopBank[i] = empty;
-        BlueTroopBank[i] = empty;
+        RedTroopBank[i] = empty_troop;
+        BlueTroopBank[i] = empty_troop;
     }
     return;
 }
@@ -548,7 +660,7 @@ void CommanderPlacement(Image image, int Map_width, int Map_height) {
 void AddBoughtTroopToTheTroopBank() {
     if(Round % 2 == 0) {
         for(int i = 0; i < 10; ++i) {
-            if(RedTroopBank[i].type == empty.type) {
+            if(RedTroopBank[i].type == empty_troop.type) {
                 switch(BoughtTroop) {
                     case 1:
                         RedTroopBank[i] = infantry;
@@ -578,13 +690,13 @@ void AddBoughtTroopToTheTroopBank() {
                 return;
             }
         }
-        cout << "There are no empty spaces for another troop!" << endl;
+        cout << "There are no empty_troop spaces for another troop!" << endl;
         BoughtTroop = 0;
         Action = 0;
     }
     else {
         for(int i = 0; i < 10; ++i) {
-            if(BlueTroopBank[i].type == empty.type) {
+            if(BlueTroopBank[i].type == empty_troop.type) {
                 switch(BoughtTroop) {
                     case 1:
                         BlueTroopBank[i] = infantry;
@@ -614,7 +726,7 @@ void AddBoughtTroopToTheTroopBank() {
                 return;
             }
         }
-        cout << "There are no empty spaces for another troop!" << endl;
+        cout << "There are no empty_troop spaces for another troop!" << endl;
         BoughtTroop = 0;
         Action = 0;
     }
@@ -671,7 +783,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                 }
                 if(IsTileOkay || IsCommanderHere) {
                     Troops[TileSelected - 1][EmptyCounter - 1] = RedTroopBank[Key - 1];
-                    RedTroopBank[Key - 1] = empty;
+                    RedTroopBank[Key - 1] = empty_troop;
                     cout << "a(n) " << Troops[TileSelected - 1][EmptyCounter - 1].type << " troop succesfully placed" << endl;
                     Round++;
                     Action = 0;
@@ -689,7 +801,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                     return;
                 }
                 else {
-                    cout << "Tile is either occupied by the enemy or doesn't have any empty slots" << endl;
+                    cout << "Tile is either occupied by the enemy or doesn't have any empty_troop slots" << endl;
                     IsTileOkay = 1;
                 }
             }
@@ -768,7 +880,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                 }
                 if(IsTileOkay || IsCommanderHere) {
                     Troops[TileSelected - 1][EmptyCounter - 1] = BlueTroopBank[Key - 1];
-                    BlueTroopBank[Key - 1] = empty;
+                    BlueTroopBank[Key - 1] = empty_troop;
                     cout << "a(n) " << Troops[TileSelected - 1][EmptyCounter - 1].type << " troop succesfully placed" << endl;
                     Round++;
                     Action = 0;
@@ -786,7 +898,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                     return;
                 }
                 else {
-                    cout << "Tile is either occupied by the enemy or doesn't have any empty slots" << endl;
+                    cout << "Tile is either occupied by the enemy or doesn't have any empty_troop slots" << endl;
                     IsTileOkay = 1;
                 }
             }
@@ -919,7 +1031,7 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                     TroopChosen = 0;
                 }
                 else if(MovingTroop.side == 'e') {
-                    cout << "That slot is empty!" << endl;
+                    cout << "That slot is empty_troop!" << endl;
                     TroopChosen = 0;
                 }
             }
@@ -929,7 +1041,7 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                     TroopChosen = 0;
                 }
                 else if(MovingTroop.side == 'e') {
-                    cout << "That slot is empty!" << endl;
+                    cout << "That slot is empty_troop!" << endl;
                     TroopChosen = 0;
                 } 
             }
@@ -951,7 +1063,7 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                     if(IsTileOkay) {
                         for(int i = 0; i < 10; ++i) {
                             if(Troops[ToTileSelected - 1][i].type == 'e') {
-                                Troops[FromTileSelected - 1][Key - 1] = empty;
+                                Troops[FromTileSelected - 1][Key - 1] = empty_troop;
                                 Troops[ToTileSelected - 1][i] = MovingTroop;
                                 Round++;
                                 ToTileSelected = 0;
@@ -1102,7 +1214,7 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
                     TroopChosen = 0;
                 }
                 else if(Troops[TileSelected - 1][Key - 1].side == 'e') {
-                    cout << "That's an empty slot!" << endl;
+                    cout << "That's an empty_troop slot!" << endl;
                     TroopChosen = 0;
                 }
                 else if(Troops[TileSelected - 1][Key - 1].type == 'c') {
@@ -1113,36 +1225,36 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
                     switch(Troops[TileSelected - 1][Key - 1].type) {
                         case 'i':
                             if(Troops[TileSelected - 1][Key - 1].health == 10) {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 RedWarPoints += 3;
                             }
                             else if(Troops[TileSelected - 1][Key - 1].health >= 7 && Troops[TileSelected - 1][Key - 1].health <= 9) {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 RedWarPoints += 2;
                             }
                             else if(Troops[TileSelected - 1][Key - 1].health >= 4 && Troops[TileSelected - 1][Key - 1].health <= 6) {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 RedWarPoints += 1;
                             }
                             else {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                             }
                             break;
                         case 'm':
                             if(Troops[TileSelected - 1][Key - 1].health == 5) {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 RedWarPoints += 6;
                             }
                             else if(Troops[TileSelected - 1][Key - 1].health >= 3 && Troops[TileSelected - 1][Key - 1].health <= 4) {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 RedWarPoints += 4;
                             }
                             else if(Troops[TileSelected - 1][Key - 1].health == 2) {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 RedWarPoints += 2;
                             }
                             else {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                             }
                             break;
                         default:
@@ -1164,7 +1276,7 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
                     TroopChosen = 0;
                 }
                 else if(Troops[TileSelected - 1][Key - 1].side == 'e') {
-                    cout << "That's an empty slot!" << endl;
+                    cout << "That's an empty_troop slot!" << endl;
                     TroopChosen = 0;
                 }
                 else if(Troops[TileSelected - 1][Key - 1].type == 'c') {
@@ -1175,36 +1287,36 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
                     switch(Troops[TileSelected - 1][Key - 1].type) {
                         case 'i':
                             if(Troops[TileSelected - 1][Key - 1].health == 10) {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 BlueWarPoints += 3;
                             }
                             else if(Troops[TileSelected - 1][Key - 1].health >= 7 && Troops[TileSelected - 1][Key - 1].health <= 9) {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 BlueWarPoints += 2;
                             }
                             else if(Troops[TileSelected - 1][Key - 1].health >= 4 && Troops[TileSelected - 1][Key - 1].health <= 6) {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 BlueWarPoints += 1;
                             }
                             else {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                             }
                             break;
                         case 'm':
                             if(Troops[TileSelected - 1][Key - 1].health == 5) {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 BlueWarPoints += 6;
                             }
                             else if(Troops[TileSelected - 1][Key - 1].health >= 3 && Troops[TileSelected - 1][Key - 1].health <= 4) {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 BlueWarPoints += 4;
                             }
                             else if(Troops[TileSelected - 1][Key - 1].health == 2) {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 BlueWarPoints += 2;
                             }
                             else {
-                                Troops[TileSelected - 1][Key - 1] = empty;
+                                Troops[TileSelected - 1][Key - 1] = empty_troop;
                             }
                             break;
                         default:
@@ -1290,6 +1402,87 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
         DrawDeleteTroopsScreen(Map, Infantry_Icon, Medic_Icon, WarPoint, Tick, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health);
     }
 }
+void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
+    for(int i = 0; i < 10; ++i) {
+        DrawRectangle((i / 5) * 300 + 50, (i % 5) * 60 + 20, 250, 50, GRAY);
+        DrawText(TextFormat("%d", i), (i / 5) * 300 + 280, (i % 5) * 60 + 22, 18, BLACK);
+        if(GameSaves.size() > i) {
+            string ShowingName = path(GameSaves[i]).stem().string();
+            DrawText(ShowingName.c_str(), (i / 5) * 300 + 55, (i % 5) * 60 + 45, 25, BLACK);
+        }
+    }
+    TempKey = GetKeyPressed() + 1;
+    if(TempKey >= 49 && TempKey <= 58) SelectedSave = TempKey - 48;
+    if(SelectedSave > 0) DrawTick(Tick, ((SelectedSave - 1) / 5) * 300, ((SelectedSave - 1) % 5) * 60 + 20);
+    DrawCheckboxes();
+    Checkbox = ControlCheckboxes();
+    DrawTexture(TrashBin, 605, 355, WHITE);
+    if(Checkbox == 2) {
+        TempKey = 0;
+        SelectedSave = 0;
+        LoadScreen = 0;
+        Checkbox = 0;
+        return;
+    }
+    else if(Checkbox == 1) {
+        if(SelectedSave - 1 < GameSaves.size()) {
+            string LoadingFile = "saves/" + GameSaves[SelectedSave - 1];
+            ifstream File(LoadingFile);
+
+            if(exists(LoadingFile)) {
+                if(File.is_open()) {
+                    File >> Round;
+                    File >> RedWarPoints;
+                    File >> BlueWarPoints;
+                    for(int i = 0; i < 10; ++i) {
+                        File >> RedTroopBank[i].type;
+                        File >> RedTroopBank[i].side;
+                        File >> RedTroopBank[i].health;
+                        File >> RedTroopBank[i].attack;
+                        File >> RedTroopBank[i].defense;
+                        File >> RedTroopBank[i].heal;
+                    }
+                    for(int i = 0; i < 10; ++i) {
+                        File >> BlueTroopBank[i].type;
+                        File >> BlueTroopBank[i].side;
+                        File >> BlueTroopBank[i].health;
+                        File >> BlueTroopBank[i].attack;
+                        File >> BlueTroopBank[i].defense;
+                        File >> BlueTroopBank[i].heal;
+                    }
+                    for(int i = 0; i < 4; ++i) {
+                        for(int j = 0; j < 10; ++j) {
+                            File >> Troops[i][j].type;
+                            File >> Troops[i][j].side;
+                            File >> Troops[i][j].health;
+                            File >> Troops[i][j].attack;
+                            File >> Troops[i][j].defense;
+                            File >> Troops[i][j].heal;
+                        }
+                    }
+                    File >> CombatHappened;
+                }
+                TempKey = 0;
+                SelectedSave = 0;
+                LoadScreen = 0;
+                Checkbox = 0;
+                return;
+            }
+        }
+    }
+    if(MouseClicked && MouseX >= 605 && MouseX <= 645 && MouseY >= 355 && MouseY <= 395 && SelectedSave > 0 && SelectedSave - 1 < GameSaves.size()) {
+        cout << SelectedSave << endl;
+        string DeletingFilePath = "saves/" + GameSaves[SelectedSave - 1];
+        if(exists(DeletingFilePath)) {
+            remove(DeletingFilePath);
+        }
+        GameSaves.erase(GameSaves.begin() + (SelectedSave - 1));
+        SelectedSave = 0;
+        TempKey = 0;
+        return;
+    } 
+    return;
+}
 
 
 int main() {
@@ -1311,6 +1504,9 @@ int main() {
     Image High_png = LoadImage("resources/High_health.png");
     Image Full_png = LoadImage("resources/Full_health.png");
     Image Restart_png = LoadImage("resources/Restart.png");
+    Image Save_png = LoadImage("resources/Save.png");
+    Image Load_png = LoadImage("resources/Load.png");
+    Image Trash_png = LoadImage("resources/Delete.png");
     Texture2D Tick = LoadTextureFromImage(Tick_png);
     Texture2D Infantry_Icon = LoadTextureFromImage(Infantry_png);
     Texture2D Medic_Icon = LoadTextureFromImage(Medic_png);
@@ -1326,11 +1522,14 @@ int main() {
     Texture2D High_health = LoadTextureFromImage(High_png);
     Texture2D Full_health = LoadTextureFromImage(Full_png);
     Texture2D Restart = LoadTextureFromImage(Restart_png);
-
+    Texture2D Save = LoadTextureFromImage(Save_png);
+    Texture2D Load = LoadTextureFromImage(Load_png);
+    Texture2D TrashBin = LoadTextureFromImage(Trash_png);
     SetTargetFPS(60);
     restart:
     restart();
     ClearTroops();
+    Saves();
     SelectedTroop.type = 'n';
     MovingTroop.type = 'n';
     while(!WindowShouldClose()) { // Main Game Loop
@@ -1374,7 +1573,7 @@ int main() {
         BeginDrawing();
 
 
-            if(GameStarted && RedCommanderAvalible && BlueCommanderAvalible) { // Game Started
+            if(GameStarted && RedCommanderAvalible && BlueCommanderAvalible && Round < 999 && !SaveScreen && !LoadScreen) { // Game Started
                 ClearBackground(WHITE);
                 if(IncreaseControl && !Increased) IncreaseWarPoints();
                 DrawTexture(Map, MapBorderX, MapBorderY, WHITE); // Draw map
@@ -1382,18 +1581,40 @@ int main() {
                 DrawTurn(Map.width, Map.height, WarPoint);
                 DrawRound(Map.width, Map.height);
                 DrawTexture(Restart, 628, 378, WHITE);
+                DrawTexture(Save, 628, 356, WHITE);
+                DrawTexture(Load, 628, 334, WHITE);
                 if(MouseX >= 628 && MouseX <= 648 && MouseY >= 378 && MouseY <= 398) {
                     Restarted = 1;
                     goto restart;
                 }
+                else if(MouseX >= 628 && MouseX <= 648 && MouseY >= 356 && MouseY <= 376) {
+                    SaveScreen = 1;
+                    for(int i = 0; i < 10; ++i) {
+                        SaveName[i] = '\0';
+                    }
+                }
+                else if(MouseX >= 628 && MouseX <= 648 && MouseY >= 334 && MouseY <= 354) {
+                    LoadScreen = 1;
+                }
+
             }
-            else if (RedCommanderAvalible && BlueCommanderAvalible) { // Title screen
+            else if(SaveScreen && Round < 999) {
+                ClearBackground(WHITE);
+                GameSave();
+                Saves();
+            }
+            else if(LoadScreen && Round < 999) {
+                ClearBackground(WHITE);
+                GameLoadScreen(Tick, TrashBin);
+                LastRound = Round;
+            }
+            else if (RedCommanderAvalible && BlueCommanderAvalible && Round < 999) { // Title screen
                 ClearBackground(WHITE);
                 if(GetTime() <= 4) DrawLogoScreen(Logo);
                 else if(CreditScreen) DrawCreditsandChangelogScreen();
                 else DrawTitleScreen(Logo);
             }
-            else if(RedCommanderAvalible && !BlueCommanderAvalible) {
+            else if(RedCommanderAvalible && !BlueCommanderAvalible && Round < 999) {
                 ClearBackground(RED);
                 DrawText("RED WON!", 75, 100, 100, BLACK);
                 DrawText("Click anywhere to restart", 10, 350, 25, BLACK);
@@ -1402,7 +1623,7 @@ int main() {
                     goto restart;
                 }
             }
-            else if(!RedCommanderAvalible && BlueCommanderAvalible) {
+            else if(!RedCommanderAvalible && BlueCommanderAvalible && Round < 999) {
                 ClearBackground(BLUE);
                 DrawText("BLUE WON!", 50, 100, 100, BLACK);
                 DrawText("Click anywhere to restart", 10, 350, 25, BLACK);
@@ -1414,6 +1635,7 @@ int main() {
             else {
                 ClearBackground(GRAY);
                 DrawText("DRAW!", 150, 100, 100, BLACK);
+                if(Round >= 999) DrawText("You reached round 1000!\nDon't play anymore", 10, 10, 30, BLACK);
                 DrawText("Click anywhere to restart", 10, 350, 25, BLACK);
                 if(MouseClicked) {
                     Restarted = 1;
@@ -1438,6 +1660,9 @@ int main() {
     UnloadImage(High_png);
     UnloadImage(Full_png);
     UnloadImage(Restart_png);
+    UnloadImage(Save_png);
+    UnloadImage(Load_png);
+    UnloadImage(Trash_png);
     UnloadTexture(Map);
     UnloadTexture(Infantry_Icon);
     UnloadTexture(Medic_Icon);
@@ -1453,6 +1678,9 @@ int main() {
     UnloadTexture(High_health);
     UnloadTexture(Full_health);
     UnloadTexture(Restart);
+    UnloadTexture(Save);
+    UnloadTexture(Load);
+    UnloadTexture(TrashBin);
     CloseWindow();
     return 0;
 }

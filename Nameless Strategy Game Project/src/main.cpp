@@ -82,6 +82,7 @@ bool CombatHappened = 0;
 bool SaveScreen = 0;
 bool LoadScreen = 0;
 bool HowToPlayScreen = 0;
+bool PlayWithABot = 0;
 int Restarted = 0;
 int LastRound = 0;
 int LastClickedX = 0;
@@ -115,14 +116,14 @@ const int MapBorderY = 0;
 
 void DrawHowToPlayScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon) {
     DrawTexture(Commander_Icon, 10, 10, WHITE);
-    DrawText("This is commander and every player only have 1 of these.\nThe main goal of the game is to kill enemy commander.\nCommander stats-> Health:1, Attack:0, Defense:0, Heal:0\n(Commander will give a 1.5x attack boost to friendly troops)", 62, 10, 19, BLACK);
+    DrawText("This is commander and every player only have 1 of these.\nThe main goal of the game is to kill enemy commander.\nCommander stats-> Health:1, Attack:0, Defense:0, Heal:0\n(Commander gives a 1,5x attack boost to friendly troops)", 62, 10, 19, BLACK);
     DrawTexture(Infantry_Icon, 10, 90, WHITE);
-    DrawText("This is the main attack troop infantry.\nInfantry stats: Health:10, Attack:2, Defense:1, Heal:0", 62, 95, 19, BLACK);
+    DrawText("This is the main attack troop infantry.\nInfantry stats-> Health:10, Attack:2, Defense:1, Heal:0", 62, 95, 19, BLACK);
     DrawTexture(Medic_Icon, 10, 150, WHITE);
-    DrawText("This is the main heal troop medic.\nMedic stats: Health:5, Attack:0, Defense:1, Heal:2", 62, 150, 19, BLACK);
+    DrawText("This is the main heal troop medic.\nMedic stats-> Health:5, Attack:0, Defense:1, Heal:2", 62, 150, 19, BLACK);
     DrawText("How rounds work: Every round you can only make 1 action\nActions include buying, skipping, moving, placing and deleting\n(Bought troops will be sent into the troop bank waiting for placement)", 10, 210, 18, BLACK);
     DrawText("How warpoints work: Warpoints are the main currency to buy troops.\nThey will increase 1, 2 or 3 randomly every 5 rounds.", 10, 270, 18, BLACK);
-    DrawText("How combat works: Combat happens at the start of every round\nTaken damage will be calculated by the formula enemyattack - yourdefense\nTaken damage will lower you troops health while heal increases it\n(Combat include a little bit of randomness for fun)", 10, 310, 18, BLACK);
+    DrawText("How combat works: Combat happens at the start of every round\nTaken damage will be calculated by the formula enemyattack - yourdefense\nTaken damage will lower you troops health while heal increases it\n(Combat includes a little bit of randomness for fun)", 10, 310, 18, BLACK);
 }
 void Saves() {
     if(exists("saves")) {
@@ -202,6 +203,8 @@ void GameSave() {
                 }
             }
             File << CombatHappened << endl;
+            File << PlayWithABot << endl;
+            File << Increased << endl;
         }
 
         SaveScreen = 0;
@@ -216,14 +219,32 @@ void GameSave() {
 void ReArrangeTroops() {
     for(int i = 0; i < 4; ++i) {
         for(int j = 0; j < 10; ++j) {
-            troop temp;
             if(Troops[i][j].type == 'e') {
-                for(int k = j; k < 9; ++k) {
+                for(int k = j; k < 10; ++k) {
                     if(Troops[i][k].type != 'e') {
-                        temp = Troops[i][k];
-                        Troops[i][k] = Troops[i][k + 1];
-                        Troops[i][k + 1] = temp;
+                        Troops[i][j] = Troops[i][k];
+                        Troops[i][k] = empty_troop;
                     }
+                }
+            }
+        }
+    }
+    for(int i = 0;i < 10; ++i) {
+        if(RedTroopBank[i].type == 'e') {
+            for(int j = i; j < 10; ++j) {
+                if(RedTroopBank[j].type != 'e') {
+                    RedTroopBank[i] = RedTroopBank[j];
+                    RedTroopBank[j] = empty_troop;
+                }
+            }
+        }
+    }
+    for(int i = 0;i < 10; ++i) {
+        if(BlueTroopBank[i].type == 'e') {
+            for(int j = i; j < 10; ++j) {
+                if(BlueTroopBank[j].type != 'e') {
+                    BlueTroopBank[i] = BlueTroopBank[j];
+                    BlueTroopBank[j] = empty_troop;
                 }
             }
         }
@@ -268,6 +289,7 @@ void restart() {
     SaveScreen = 0;
     LoadScreen = 0;
     SelectedSave = 0;
+    PlayWithABot = 0;
     index = 0;
 }
 void Combat() {
@@ -435,9 +457,9 @@ void Combat() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("- Added how to play", 10, 70, 25, BLACK);
+    DrawText("- Added a bot\n(I know it is dumb)\n- Fixed some loading bugs", 10, 70, 25, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\n\nMade with:\nC++/Raylib", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.6.2", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.7", 10, 360, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -479,8 +501,11 @@ void GetMouseCoords() {
     return;
 }
 void DrawTitleScreen(Texture2D Logo) {
-    DrawText("Click anywhere to start a game", 20, 200, 38, BLACK);
-    DrawText("Version: Pre-alpha 0.6.2", 10, 360, 30, BLACK);
+    DrawRectangle(10, 150, 300, 100, GRAY);
+    DrawRectangle(330, 150, 300, 100, GRAY);
+    DrawText("Play with a friend", 30, 180, 30, BLACK);
+    DrawText("Play with a bot", 350, 180, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.7", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
     DrawRectangle(500, 340, 140, 50, GRAY);
@@ -1249,11 +1274,11 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
                                 Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 RedWarPoints += 3;
                             }
-                            else if(Troops[TileSelected - 1][Key - 1].health >= 7 && Troops[TileSelected - 1][Key - 1].health <= 9) {
+                            else if(Troops[TileSelected - 1][Key - 1].health >= 7 && Troops[TileSelected - 1][Key - 1].health < 10) {
                                 Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 RedWarPoints += 2;
                             }
-                            else if(Troops[TileSelected - 1][Key - 1].health >= 4 && Troops[TileSelected - 1][Key - 1].health <= 6) {
+                            else if(Troops[TileSelected - 1][Key - 1].health >= 4 && Troops[TileSelected - 1][Key - 1].health < 7) {
                                 Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 RedWarPoints += 1;
                             }
@@ -1266,11 +1291,11 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
                                 Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 RedWarPoints += 6;
                             }
-                            else if(Troops[TileSelected - 1][Key - 1].health >= 3 && Troops[TileSelected - 1][Key - 1].health <= 4) {
+                            else if(Troops[TileSelected - 1][Key - 1].health >= 3 && Troops[TileSelected - 1][Key - 1].health < 5) {
                                 Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 RedWarPoints += 4;
                             }
-                            else if(Troops[TileSelected - 1][Key - 1].health == 2) {
+                            else if(Troops[TileSelected - 1][Key - 1].health >= 2 && Troops[TileSelected - 1][Key - 1].health < 3) {
                                 Troops[TileSelected - 1][Key - 1] = empty_troop;
                                 RedWarPoints += 2;
                             }
@@ -1482,6 +1507,8 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
                         }
                     }
                     File >> CombatHappened;
+                    File >> PlayWithABot;
+                    File >> Increased;
                 }
                 TempKey = 0;
                 SelectedSave = 0;
@@ -1502,6 +1529,182 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
         TempKey = 0;
         return;
     } 
+    return;
+}
+void BotMove() {
+    bool MoveMade = 0;
+    while(!MoveMade) {
+        int Move = GetRandomValue(1,3); // 1: Buy 2: Place 3: Move 4: Delete 5: SkipRound
+        if(Round == 1) {
+            int BotCommander = GetRandomValue(1, 4);
+            if(Troops[BotCommander - 1][0].type == 'e') {
+                Troops[BotCommander - 1][0] = commander;
+                Troops[BotCommander - 1][0].side = 'b';
+                MoveMade = 1;
+            }
+        }
+        else {
+            if(Move == 1) {
+                int BotBuy = GetRandomValue(1, 2);
+                if(BotBuy == 1) {
+                    if(BlueWarPoints >= 5) {
+                        for(int i = 0; i < 10; ++i) {
+                            if(BlueTroopBank[i].type == 'e') {
+                                BlueTroopBank[i] = infantry;
+                                BlueTroopBank[i].side = 'b';
+                                BlueWarPoints -= 5;
+                                MoveMade = 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+                else {
+                    if(BlueWarPoints >= 10) {
+                        for(int i = 0; i < 10; ++i) {
+                            if(BlueTroopBank[i].type == 'e') {
+                                BlueTroopBank[i] = medic;
+                                BlueTroopBank[i].side = 'b';
+                                BlueWarPoints -= 5;
+                                MoveMade = 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            else if(Move == 2) {
+                int BotTroopBankCount = 0;
+                for(int i = 0; i < 10; ++i) {
+                    if(BlueTroopBank[i].type != 'e') {
+                        BotTroopBankCount++;
+                    }
+                }
+                if(BotTroopBankCount) {
+                    int BotTroopCount = 0;
+                    bool BotCommanderHere = 0;
+                    bool EnemyTroopIsHere = 0;
+                    int BotBank = 0;
+                    int BotTile = GetRandomValue(1,4);
+                    for(int i = 0; i < 10; ++i) {
+                        if(BlueTroopBank[i].type != 'e') {
+                            BotBank++;
+                        }
+                        if(Troops[BotTile - 1][i].side == 'b' && Troops[BotTile - 1][i].type == 'c') {
+                            BotCommanderHere = 1;
+                        }
+                        if(Troops[BotTile - 1][i].side == 'b') {
+                            BotTroopCount++;
+                        }
+                        if(Troops[BotTile - 1][i].side == 'r' && EnemyTroopIsHere == 0) {
+                            EnemyTroopIsHere =  1;
+                        }
+                    }
+                    if(BotTroopCount < 5 && ((EnemyTroopIsHere && BotCommanderHere) || (!EnemyTroopIsHere)) && BotBank) {
+                        int BotChosen = GetRandomValue(1, BotBank);
+                        for(int i = 0; i < 10; ++i) {
+                            if(Troops[BotTile - 1][i].type == 'e') {
+                                Troops[BotTile - 1][i] = BlueTroopBank[BotBank - 1];
+                                BlueTroopBank[BotBank - 1] = empty_troop;
+                                MoveMade = 1;
+                            }
+                        }
+                    }
+                }
+            }
+            else if(Move == 3) {
+                int BotFromTile = GetRandomValue(1,4);
+                int BotTroopCount = 0;
+                vector<pair<troop, int>> BotTroops;
+                for(int i = 0;i < 10; ++i) {
+                    if(Troops[BotFromTile - 1][i].side == 'b') {
+                        BotTroops.push_back({Troops[BotFromTile - 1][i], i});
+                    }
+                }
+                if(BotTroops.size() > 0) {
+                    int BotSelected = GetRandomValue(1, BotTroops.size());
+                    int BotToTile = GetRandomValue(1, Tiles[BotFromTile - 1].size());
+                    for(int i = 0; i < 10; ++i) {
+                        if(Troops[BotToTile - 1][i].side == 'b') {
+                            BotTroopCount++;
+                        }
+                    }
+                    if(BotTroopCount < 5) {
+                        for(int i = 0; i < 10; ++i) {
+                            if(Troops[BotToTile - 1][i].type == 'e') {
+                                Troops[BotToTile - 1][i] = Troops[BotFromTile - 1][BotTroops[BotSelected - 1].second];
+                                Troops[BotFromTile - 1][BotTroops[BotSelected - 1].second] = empty_troop;
+                                MoveMade = 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            else if(Move == 4) {
+                int BotTile = GetRandomValue(1, 4);
+                vector<pair<troop,int>> BotTroops;
+                for(int i = 0; i < 10; ++i) {
+                    if(Troops[BotTile - 1][i].side == 'b') {
+                        BotTroops.push_back({Troops[BotTile - 1][i], i});
+                    }
+                }
+                if(BotTroops.size() > 0 ) {
+                    int BotSelected = GetRandomValue(1, BotTroops.size());
+                    switch(Troops[BotTile - 1][BotTroops[BotSelected - 1].second].type) {
+                        case 'i':
+                            if(Troops[BotTile - 1][BotTroops[BotSelected - 1].second].health == 10) {
+                                Troops[BotTile - 1][BotTroops[BotSelected - 1].second] = empty_troop;
+                                BlueWarPoints += 3;
+                                MoveMade = 1;
+                            }
+                            else if(Troops[BotTile - 1][BotTroops[BotSelected - 1].second].health >= 7) {
+                                Troops[BotTile - 1][BotTroops[BotSelected - 1].second] = empty_troop;
+                                BlueWarPoints += 2;
+                                MoveMade = 1;
+                            }
+                            else if(Troops[BotTile - 1][BotTroops[BotSelected - 1].second].health >= 4) {
+                                Troops[BotTile - 1][BotTroops[BotSelected - 1].second] = empty_troop;
+                                BlueWarPoints += 1;
+                                MoveMade = 1;
+                            }
+                            else {
+                                Troops[BotTile - 1][BotTroops[BotSelected - 1].second] = empty_troop;
+                                MoveMade = 1;
+                            }
+                            break;
+                        case 'm':
+                            if(Troops[BotTile - 1][BotTroops[BotSelected - 1].second].health == 5) {
+                                Troops[BotTile - 1][BotTroops[BotSelected - 1].second] = empty_troop;
+                                BlueWarPoints += 3;
+                                MoveMade = 1;
+                            }
+                            else if(Troops[BotTile - 1][BotTroops[BotSelected - 1].second].health >= 3) {
+                                Troops[BotTile - 1][BotTroops[BotSelected - 1].second] = empty_troop;
+                                BlueWarPoints += 2;
+                                MoveMade = 1;
+                            }
+                            else if(Troops[BotTile - 1][BotTroops[BotSelected - 1].second].health >= 2) {
+                                Troops[BotTile - 1][BotTroops[BotSelected - 1].second] = empty_troop;
+                                BlueWarPoints += 1;
+                                MoveMade = 1;
+                            }
+                            else {
+                                Troops[BotTile - 1][BotTroops[BotSelected - 1].second] = empty_troop;
+                                MoveMade = 1;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+            else if(Move == 5) {
+                MoveMade = 1;
+            }
+        }
+    }
+    Round++;
     return;
 }
 
@@ -1582,8 +1785,12 @@ int main() {
             else if(HowToPlayScreen) {
                 HowToPlayScreen = 0;
             }
-            else if(GameStarted == false && !CreditScreen && !HowToPlayScreen) {
+            else if(GameStarted == false && !CreditScreen && !HowToPlayScreen && MouseX >= 10 && MouseX <= 310 && MouseY >= 150 && MouseY <= 250) {
                 GameStarted = true;
+            }
+            else if(GameStarted == false && !CreditScreen && !HowToPlayScreen && MouseX >= 330 && MouseX <= 630 && MouseY >= 150 && MouseY <= 250) {
+                GameStarted = true;
+                PlayWithABot = 1;
             }
             if(!MouseCleared && GameStarted) {
                 ClearMouseCoords();
@@ -1599,8 +1806,10 @@ int main() {
         }
         BeginDrawing();
 
-
             if(GameStarted && RedCommanderAvalible && BlueCommanderAvalible && Round < 999 && !SaveScreen && !LoadScreen) { // Game Started
+                if(PlayWithABot && Round % 2) {
+                    BotMove();
+                }
                 ClearBackground(WHITE);
                 if(IncreaseControl && !Increased) IncreaseWarPoints();
                 DrawTexture(Map, MapBorderX, MapBorderY, WHITE); // Draw map

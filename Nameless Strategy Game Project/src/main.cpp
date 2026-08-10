@@ -208,9 +208,11 @@ void ReArrangeTroops() {
             troop temp;
             if(Troops[i][j].type == 'e') {
                 for(int k = j; k < 9; ++k) {
-                    temp = Troops[i][k];
-                    Troops[i][k] = Troops[i][k + 1];
-                    Troops[i][k + 1] = temp;
+                    if(Troops[i][k].type != 'e') {
+                        temp = Troops[i][k];
+                        Troops[i][k] = Troops[i][k + 1];
+                        Troops[i][k + 1] = temp;
+                    }
                 }
             }
         }
@@ -300,14 +302,14 @@ void Combat() {
         if(TotalBlueAttack / 3 >= 1.0) TotalBlueAttack += (rand() % (int)(TotalBlueAttack / 3));
         if(TotalBlueDefense / 3 >= 1.0) TotalBlueDefense += (rand() % (int)(TotalBlueDefense / 3));
         if(TotalBlueHeal / 3 >= 1.0) TotalBlueHeal += (rand() % (int)(TotalBlueHeal / 3));
-        if(TotalBlueAttack > TotalRedDefense)  TakenRedDamage = TotalBlueAttack - TotalRedDefense;
-        if(TotalRedAttack > TotalBlueDefense) TakenBlueDamage = TotalRedAttack - TotalBlueDefense;
         if(RedCommander) {
-            TakenBlueDamage *= 1.5;
+            TotalRedAttack *= 1.5;
         }
         if(BlueCommander) {
-            TakenRedDamage *= 1.5;
+            TotalBlueAttack *= 1.5;
         }
+        if(TotalBlueAttack > TotalRedDefense)  TakenRedDamage = TotalBlueAttack - TotalRedDefense;
+        if(TotalRedAttack > TotalBlueDefense) TakenBlueDamage = TotalRedAttack - TotalBlueDefense;
         if(!TakenBlueDamage && RedTroopCount) {
             TakenBlueDamage = RedTroopCount;
         }
@@ -422,9 +424,9 @@ void Combat() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("- Added saving and loading\n- Minor bugfixes", 10, 70, 25, BLACK);
-    DrawText("Main Developer:\nKenan Mert Pamuk", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.6", 10, 360, 30, BLACK);
+    DrawText("- Balance change:\nEvery player can\nsend max 5 troops\ninto a tile now\n- Commander now gives\n1.5x attack boost\nto friendly troops", 10, 70, 25, BLACK);
+    DrawText("Main Developer:\nKenan Mert Pamuk\n\nMade with:\nC++/Raylib", 360, 70, 25, BLACK);
+    DrawText("Version: Pre-alpha 0.6.1", 10, 360, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -467,7 +469,7 @@ void GetMouseCoords() {
 }
 void DrawTitleScreen(Texture2D Logo) {
     DrawText("Click anywhere to start a game", 20, 200, 38, BLACK);
-    DrawText("Version: Pre-alpha 0.6", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.6.1", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
     DrawRectangle(500, 340, 140, 50, GRAY);
@@ -732,6 +734,8 @@ void AddBoughtTroopToTheTroopBank() {
     }
 }
 void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
+    int RedTroopCount = 0;
+    int BlueTroopCount = 0;
     if(Round % 2 == 0) {
         if(!TroopChosen) {
             DrawText("Select a troop from\nyour troop bank to place", MapBorderX + 10, MapBorderY + 310, 25, BLACK);
@@ -773,9 +777,16 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                     if(Troops[TileSelected - 1][i].side == 'r' && Troops[TileSelected - 1][i].type == 'c') {
                         IsCommanderHere = 1;
                     }
+                    if(Troops[TileSelected - 1][i].side == 'r') {
+                        RedTroopCount++;
+                    }
                     else if(Troops[TileSelected - 1][i].type == 'e' && !EmptyCounter) {
                         EmptyCounter = i + 1;
                     }
+                }
+                if(RedTroopCount >= 5) {
+                    IsTileOkay = 0;
+                    IsCommanderHere = 0;
                 }
                 if(!EmptyCounter) {
                     IsTileOkay = 0;
@@ -870,9 +881,16 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                     if(Troops[TileSelected - 1][i].side == 'b' && Troops[TileSelected - 1][i].type == 'c') {
                         IsCommanderHere = 1;
                     }
+                    if(Troops[TileSelected - 1][i].side == 'b') {
+                        BlueTroopCount++;
+                    }
                     else if(Troops[TileSelected - 1][i].type == 'e' && !EmptyCounter) {
                         EmptyCounter = i + 1;
                     }
+                }
+                if(BlueTroopCount >= 5) {
+                    IsTileOkay = 0;
+                    IsCommanderHere = 0;  
                 }
                 if(!EmptyCounter) {
                     IsTileOkay = 0;
@@ -929,6 +947,8 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
     }
 }
 void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
+    int RedTroopCount = 0;
+    int BlueTroopCount = 0;
     if(!FromTileSelected) {
         DrawText("Select a tile to move a troop\nfrom that tile", MapBorderX + 10, MapBorderY + 310, 25, BLACK);
         ChangeTileSelected(Map, Map_width, Map_height);
@@ -1059,6 +1079,20 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                             IsTileOkay = 1;
                             break;
                         }
+                    }
+                    for(int i = 0; i < 10; ++i) {
+                        if(Troops[ToTileSelected - 1][i].side == 'r') {
+                            RedTroopCount++;
+                        }
+                        else if(Troops[ToTileSelected - 1][i].side == 'b') {
+                            BlueTroopCount++;
+                        }
+                    }
+                    if(Round % 2 && BlueTroopCount >= 5) {
+                        IsTileOkay = 0;
+                    }
+                    else if(!(Round % 2) && RedTroopCount >= 5) {
+                        IsTileOkay = 0;
                     }
                     if(IsTileOkay) {
                         for(int i = 0; i < 10; ++i) {
@@ -1532,7 +1566,7 @@ int main() {
     Saves();
     SelectedTroop.type = 'n';
     MovingTroop.type = 'n';
-    while(!WindowShouldClose()) { // Main Game Loop
+    while(IsKeyPressed(KEY_ESCAPE) || !WindowShouldClose()) { // Main Game Loop
         if(LastRound != Round) {
             CombatHappened = 0;
             LastRound = Round;
@@ -1684,3 +1718,5 @@ int main() {
     CloseWindow();
     return 0;
 }
+
+// Kırmızı birlikler mavi birlikler olarak 5-5 eyalet alanları ayrılacak çünkü medic spam çok op

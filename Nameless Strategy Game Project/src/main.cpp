@@ -81,6 +81,7 @@ bool BlueCommanderAvalible = 1;
 bool CombatHappened = 0;
 bool SaveScreen = 0;
 bool LoadScreen = 0;
+bool HowToPlayScreen = 0;
 int Restarted = 0;
 int LastRound = 0;
 int LastClickedX = 0;
@@ -112,7 +113,17 @@ const int MapBorderY = 0;
 
 // Functions
 
-
+void DrawHowToPlayScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon) {
+    DrawTexture(Commander_Icon, 10, 10, WHITE);
+    DrawText("This is commander and every player only have 1 of these.\nThe main goal of the game is to kill enemy commander.\nCommander stats-> Health:1, Attack:0, Defense:0, Heal:0\n(Commander will give a 1.5x attack boost to friendly troops)", 62, 10, 19, BLACK);
+    DrawTexture(Infantry_Icon, 10, 90, WHITE);
+    DrawText("This is the main attack troop infantry.\nInfantry stats: Health:10, Attack:2, Defense:1, Heal:0", 62, 95, 19, BLACK);
+    DrawTexture(Medic_Icon, 10, 150, WHITE);
+    DrawText("This is the main heal troop medic.\nMedic stats: Health:5, Attack:0, Defense:1, Heal:2", 62, 150, 19, BLACK);
+    DrawText("How rounds work: Every round you can only make 1 action\nActions include buying, skipping, moving, placing and deleting\n(Bought troops will be sent into the troop bank waiting for placement)", 10, 210, 18, BLACK);
+    DrawText("How warpoints work: Warpoints are the main currency to buy troops.\nThey will increase 1, 2 or 3 randomly every 5 rounds.", 10, 270, 18, BLACK);
+    DrawText("How combat works: Combat happens at the start of every round\nTaken damage will be calculated by the formula enemyattack - yourdefense\nTaken damage will lower you troops health while heal increases it\n(Combat include a little bit of randomness for fun)", 10, 310, 18, BLACK);
+}
 void Saves() {
     if(exists("saves")) {
         for(const auto& file : directory_iterator("saves")) {
@@ -424,9 +435,9 @@ void Combat() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("- Balance change:\nEvery player can\nsend max 5 troops\ninto a tile now\n- Commander now gives\n1.5x attack boost\nto friendly troops", 10, 70, 25, BLACK);
+    DrawText("- Added how to play", 10, 70, 25, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\n\nMade with:\nC++/Raylib", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.6.1", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.6.2", 10, 360, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -469,11 +480,13 @@ void GetMouseCoords() {
 }
 void DrawTitleScreen(Texture2D Logo) {
     DrawText("Click anywhere to start a game", 20, 200, 38, BLACK);
-    DrawText("Version: Pre-alpha 0.6.1", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.6.2", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
     DrawRectangle(500, 340, 140, 50, GRAY);
     DrawText("Changelog\nand Credits", 505, 345, 20, BLACK);
+    DrawRectangle(500, 280, 140, 50, GRAY);
+    DrawText("How to play", 505, 300, 20, BLACK);
 }
 void DrawLogoScreen(Texture2D Logo) {
     DrawTextureEx(Logo, {150, 10}, 0.0f, 7.0f, WHITE);
@@ -587,53 +600,27 @@ void DrawTurn(int Map_width, int Map_height, Texture2D WarPoint) {
     }
     return;
 }
-void ChangeTileSelected(Image image, int Map_width, int Map_height) {
-    if(MouseX >= MapBorderX && MouseX <= MapBorderX + Map_width && MouseY >= MapBorderY && MouseY <= MapBorderY + Map_height) {
+void ChangeTileSelected(Image Map, int Map_width, int Map_height) {
+    if(MouseX >= MapBorderX && MouseX <= MapBorderX + Map_width && MouseY >= MapBorderY && MouseY <= MapBorderY + Map_height && MouseClicked) {
         PixelX = MouseX - MapBorderX;
         PixelY = MouseY - MapBorderY;
 
-        MouseColor = GetImageColor(image, PixelX, PixelY);
-        if(ColorIsEqual(MouseColor, {100,0,0,255})) {
-            TileSelected = 1;
-        }
-        else if(ColorIsEqual(MouseColor, {200,0,0,255})) {
-            TileSelected = 2;
-        }
-        else if(ColorIsEqual(MouseColor, {0,100,0,255})) {
-            TileSelected = 3;
-        }
-        else if(ColorIsEqual(MouseColor, {0,200,0,255})) {
-            TileSelected = 4;
-        }
+        MouseColor = GetImageColor(Map, PixelX, PixelY);
+        if(MouseColor.r) TileSelected = MouseColor.r / 100;
+        else if(MouseColor.g) TileSelected = (MouseColor.g + 200) / 100;
     }
-    else {
-        if(MouseClicked) TileSelected = 0;
+    else if(MouseClicked) {
+        TileSelected = 0;
     }
     return;
 }
 void DrawTileSelected() {
-    switch(TileSelected) { // Tile Selecter
-        default:
-            DrawText("Select \na \ntile", 10, 10, 30, BLACK);
-            break;
-        case 1:
-            DrawText("Tile 1", 10, 10, 30, MouseColor);
-            break;
-        case 2:
-            DrawText("Tile 2", 10, 10, 30, MouseColor);
-            break;
-        case 3:
-            DrawText("Tile 3", 10, 10, 30, MouseColor);
-            break;
-        case 4:
-            DrawText("Tile 4", 10, 10, 30, MouseColor);
-            break;
-    }
-    return;
+    if(TileSelected == 0) DrawText("Select \na \ntile", 10, 10, 30, BLACK);
+    else DrawText(TextFormat("Tile %d", TileSelected), 10, 10, 30, MouseColor);
 }
 void CommanderPlacement(Image image, int Map_width, int Map_height) {
     DrawTileSelected();
-    ChangeTileSelected(image, Map_width, Map_height);
+    if(MouseClicked) ChangeTileSelected(image, Map_width, Map_height);
     DrawText("Select a tile to\nplace your commander\nchoose wisely", MapBorderX + 10, 310, 26, BLACK);
     if(TileSelected != 0) {
         if(MouseClicked) GetMouseCoords();
@@ -1439,7 +1426,7 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
 void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
     for(int i = 0; i < 10; ++i) {
         DrawRectangle((i / 5) * 300 + 50, (i % 5) * 60 + 20, 250, 50, GRAY);
-        DrawText(TextFormat("%d", i), (i / 5) * 300 + 280, (i % 5) * 60 + 22, 18, BLACK);
+        DrawText(TextFormat("%d", i), (i / 5) * 300 + 52, (i % 5) * 60 + 22, 18, BLACK);
         if(GameSaves.size() > i) {
             string ShowingName = path(GameSaves[i]).stem().string();
             DrawText(ShowingName.c_str(), (i / 5) * 300 + 55, (i % 5) * 60 + 45, 25, BLACK);
@@ -1447,7 +1434,7 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
     }
     TempKey = GetKeyPressed() + 1;
     if(TempKey >= 49 && TempKey <= 58) SelectedSave = TempKey - 48;
-    if(SelectedSave > 0) DrawTick(Tick, ((SelectedSave - 1) / 5) * 300, ((SelectedSave - 1) % 5) * 60 + 20);
+    if(SelectedSave > 0) DrawTick(Tick, ((SelectedSave - 1) / 5) * 300 + 250, ((SelectedSave - 1) % 5) * 60 + 20);
     DrawCheckboxes();
     Checkbox = ControlCheckboxes();
     DrawTexture(TrashBin, 605, 355, WHITE);
@@ -1580,8 +1567,11 @@ int main() {
 
         if(MouseClicked && GetTime() > 4) { // Mouse Controls
             GetMouseCoords();
-            if(!GameStarted && MouseX >= 500 && MouseX <= 640 && MouseY >= 340 && MouseY <= 390 && !CreditScreen && !Restarted) {
+            if(!GameStarted && MouseX >= 500 && MouseX <= 640 && MouseY >= 340 && MouseY <= 390 && !CreditScreen && !Restarted && !HowToPlayScreen) {
                 CreditScreen = 1;
+            }
+            else if(!GameStarted && MouseX >= 500 && MouseX <= 640 && MouseY >= 280 && MouseY <= 330 && !CreditScreen && !Restarted && !HowToPlayScreen) {
+                HowToPlayScreen = 1;
             }
             else if(Restarted) {
                 Restarted = 0;
@@ -1589,7 +1579,10 @@ int main() {
             else if(CreditScreen) {
                 CreditScreen = 0;
             }
-            else if(GameStarted == false && !CreditScreen) {
+            else if(HowToPlayScreen) {
+                HowToPlayScreen = 0;
+            }
+            else if(GameStarted == false && !CreditScreen && !HowToPlayScreen) {
                 GameStarted = true;
             }
             if(!MouseCleared && GameStarted) {
@@ -1646,6 +1639,7 @@ int main() {
                 ClearBackground(WHITE);
                 if(GetTime() <= 4) DrawLogoScreen(Logo);
                 else if(CreditScreen) DrawCreditsandChangelogScreen();
+                else if(HowToPlayScreen) DrawHowToPlayScreen(Infantry_Icon, Medic_Icon, Commander_Icon);
                 else DrawTitleScreen(Logo);
             }
             else if(RedCommanderAvalible && !BlueCommanderAvalible && Round < 999) {
@@ -1718,5 +1712,3 @@ int main() {
     CloseWindow();
     return 0;
 }
-
-// Kırmızı birlikler mavi birlikler olarak 5-5 eyalet alanları ayrılacak çünkü medic spam çok op

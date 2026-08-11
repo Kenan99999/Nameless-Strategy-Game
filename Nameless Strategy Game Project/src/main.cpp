@@ -497,9 +497,9 @@ void Combat() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:\nMAJOR UPDATE", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("- Added artillery and\ntank troops\n- Added terrain types\n- Made a good\nvisual map\nPs: How to play\nwill change in\nnext update", 10, 70, 25, BLACK);
+    DrawText("Added in 0.8:\n- Added artillery and\ntank troops\n- Added terrain types\n- Made a good\nvisual map\nPs: How to play\nwill change in 0.8.1\n0.8.0.1:\n- bugfixes", 10, 70, 25, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\n\nMade with:\nC++/Raylib", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.8", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.8.0.1", 10, 360, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -571,10 +571,8 @@ Texture2D DrawTroopIcon(char type, Texture2D Infantry_Icon, Texture2D Medic_Icon
             return Empty_Icon;
         case 'a':
             return Artillery_Icon;
-            break;
         case 't':
             return Tank_Icon;
-            break;
         default:
             break;
     }
@@ -603,7 +601,7 @@ void DrawTitleScreen(Texture2D Logo) {
     DrawRectangle(330, 150, 300, 100, GRAY);
     DrawText("Play with a friend", 30, 180, 30, BLACK);
     DrawText("Play with a bot", 350, 180, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.8", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.8.0.1", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
     DrawRectangle(500, 340, 140, 50, GRAY);
@@ -1179,26 +1177,28 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                 Checkbox = ControlCheckboxes();
                 if(Checkbox == 1) {
                     ToTileSelected = TileSelected;
-                    for(auto i : Tiles[ToTileSelected - 1]) {
-                        if(i == FromTileSelected - 1) {
-                            cout << i << " "  << FromTileSelected - 1 << endl;
-                            IsTileOkay = 1;
-                            break;
+                    if(ToTileSelected) {
+                        for(auto i : Tiles[ToTileSelected - 1]) {
+                            if(i == FromTileSelected - 1) {
+                                cout << i << " "  << FromTileSelected - 1 << endl;
+                                IsTileOkay = 1;
+                                break;
+                            }
                         }
-                    }
-                    for(int i = 0; i < 10; ++i) {
-                        if(Troops[ToTileSelected - 1][i].side == 'r') {
-                            RedTroopCount++;
+                        for(int i = 0; i < 10; ++i) {
+                            if(Troops[ToTileSelected - 1][i].side == 'r') {
+                                RedTroopCount++;
+                            }
+                            else if(Troops[ToTileSelected - 1][i].side == 'b') {
+                                BlueTroopCount++;
+                            }
                         }
-                        else if(Troops[ToTileSelected - 1][i].side == 'b') {
-                            BlueTroopCount++;
+                        if(Round % 2 && BlueTroopCount >= 5) {
+                            IsTileOkay = 0;
                         }
-                    }
-                    if(Round % 2 && BlueTroopCount >= 5) {
-                        IsTileOkay = 0;
-                    }
-                    else if(!(Round % 2) && RedTroopCount >= 5) {
-                        IsTileOkay = 0;
+                        else if(!(Round % 2) && RedTroopCount >= 5) {
+                            IsTileOkay = 0;
+                        }
                     }
                     if(IsTileOkay) {
                         for(int i = 0; i < 10; ++i) {
@@ -1289,14 +1289,13 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
             for(int i = 0; i < 10; ++i) {
                 TempDraw = DrawTroopIcon(Troops[TileSelected - 1][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon);
                 DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
-                if(!ItIsAnEmptySlot) { 
+                if(Troops[TileSelected - 1][i].type != 'e') { 
                     RedBlue = DrawSide(Troops[TileSelected - 1][i].side, Red_Icon, Blue_Icon);
                     DrawTexture(RedBlue, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
                     Health = DrawTroopHealth(Troops[TileSelected - 1][i].health, Troops[TileSelected - 1][i].type, Low_health, Medium_health, High_health, Full_health);
                     DrawTexture(Health, MapBorderX - (((i + 1) % 2) * 60 + 73), (i / 2) * 60 + 51, WHITE);
                 }
                 DrawText(TextFormat("%d", i), MapBorderX - (((i + 1) % 2) * 60 + 84), (i / 2) * 60 + 10, 15, BLACK);
-                ItIsAnEmptySlot = 0;
                 TempKey = GetKeyPressed() - 47;
                 if(TempKey >= 1 && TempKey <= 10) {
                     Key = TempKey;
@@ -1307,7 +1306,7 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
             }
             DrawCheckboxes();
             Checkbox = ControlCheckboxes();
-            if(Checkbox == 1) {
+            if(Checkbox == 1 && Key) {
                 TroopChosen = 1;
             }
             else if(Checkbox == 2) {
@@ -1816,6 +1815,7 @@ void DrawTroops( Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
         }
     }
 }
+
 
 int main() {
     CreateMapBonds();

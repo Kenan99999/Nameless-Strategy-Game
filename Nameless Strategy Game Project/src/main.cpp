@@ -41,6 +41,23 @@ troop medic {
     1,
     2
 };
+troop artillery {
+    'a',
+    'e',
+    15,
+    5,
+    0,
+    0
+};
+troop tank{
+    't',
+    'e',
+    30,
+    10,
+    5,
+    0
+};
+
 
 using namespace std;
 using namespace filesystem;
@@ -55,6 +72,8 @@ int MouseX = 0;
 int MouseY = 0;
 const int Infantry_Full = 10;
 const int Medic_Full = 5;
+const int Artillery_Full = 15;
+const int Tank_Full = 30;
 const int Commander_Full = 1;
 int TileSelected = 0;
 int FromTileSelected = 0;
@@ -99,12 +118,15 @@ Texture2D RedBlue;
 Texture2D Health;
 const int Infantry_Cost = 5;
 const int Medic_Cost = 10;
+const int Artillery_Cost = 20;
+const int Tank_Cost = 40;
 troop RedTroopBank[10];
 troop BlueTroopBank[10];
 troop Troops[4][10];
 char SaveName[10];
 Color MouseColor = {255, 0, 0, 0};
 vector<vector<int>> Tiles(4);
+vector<string> Terrain(4);
 
 const int screenWidth = 650;
 const int screenHeight = 400;
@@ -342,6 +364,20 @@ void Combat() {
         if(BlueCommander) {
             TotalBlueAttack *= 1.5;
         }
+        if(Terrain[i] == "forest") {
+            TotalBlueAttack *= 0.8;
+            TotalRedAttack *= 0.8;
+        }
+        if(Terrain[i] == "city") {
+            TotalBlueDefense *= 1.25;
+            TotalRedDefense *= 1.25;
+        }
+        if(Terrain[i] == "mountains") {
+            TotalBlueDefense *= 1.5;
+            TotalRedDefense *= 1.5;
+            TotalBlueAttack *= 0.7;
+            TotalRedAttack *= 0.7;
+        }
         if(TotalBlueAttack > TotalRedDefense)  TakenRedDamage = TotalBlueAttack - TotalRedDefense;
         if(TotalRedAttack > TotalBlueDefense) TakenBlueDamage = TotalRedAttack - TotalBlueDefense;
         if(!TakenBlueDamage && RedTroopCount) {
@@ -459,11 +495,11 @@ void Combat() {
     return;
 }
 void DrawCreditsandChangelogScreen() {
-    DrawText("Changelog:\nQuality of life update", 10, 10, 30, BLACK);
+    DrawText("Changelog:\nMAJOR UPDATE", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("- You can now see troops\nwithout opening the tile\n- Fixed vanishing troops bug", 10, 70, 25, BLACK);
+    DrawText("- Added artillery and\ntank troops\n- Added terrain types\n- Made a good\nvisual map\nPs: How to play\nwill change in\nnext update", 10, 70, 25, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\n\nMade with:\nC++/Raylib", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.7.1", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.8", 10, 360, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -491,6 +527,30 @@ Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D
             }
             else return Low_health;
             break;
+        case 'a':
+            if(Health == Artillery_Full) {
+                return Full_health;
+            }
+            else if(Health >= Artillery_Full * 7 / 10) {
+                return High_health;
+            }
+            else if(Health >= Artillery_Full * 4 / 10) {
+                return Medium_health;
+            }
+            else return Low_health;
+            break;
+        case 't':
+            if(Health == Tank_Full) {
+                return Full_health;
+            }
+            else if(Health >= Tank_Full * 7 / 10) {
+                return High_health;
+            }
+            else if(Health >= Tank_Full * 4 / 10) {
+                return Medium_health;
+            }
+            else return Low_health;
+            break;
         case 'c':
             return Full_health;
             break;
@@ -499,7 +559,7 @@ Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D
     }
     return Low_health;
 }
-Texture2D DrawTroopIcon(char type, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon) {
+Texture2D DrawTroopIcon(char type, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Artillery_Icon, Texture2D Tank_Icon) {
     switch(type) {
         case 'i':
             return Infantry_Icon;
@@ -509,6 +569,12 @@ Texture2D DrawTroopIcon(char type, Texture2D Infantry_Icon, Texture2D Medic_Icon
             return Commander_Icon;
         case 'e':
             return Empty_Icon;
+        case 'a':
+            return Artillery_Icon;
+            break;
+        case 't':
+            return Tank_Icon;
+            break;
         default:
             break;
     }
@@ -537,7 +603,7 @@ void DrawTitleScreen(Texture2D Logo) {
     DrawRectangle(330, 150, 300, 100, GRAY);
     DrawText("Play with a friend", 30, 180, 30, BLACK);
     DrawText("Play with a bot", 350, 180, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.7.1", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.8", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
     DrawRectangle(500, 340, 140, 50, GRAY);
@@ -571,33 +637,39 @@ void IncreaseWarPoints() {
     return;
 }
 void TroopBuying(Texture2D Tick) {
-    if(IsKeyPressed(KEY_I)) {
-        PressedKeyI = 1;
-        PressedKeyM = 0;
+    TempKey = GetKeyPressed();
+    if(TempKey == KEY_I) {
         BoughtTroop = 1;
     }
-    if(PressedKeyI) {
-        DrawTick(Tick, MapBorderX - 130, MapBorderY + 10);
-    }
-    if(IsKeyPressed(KEY_M)) {
-        PressedKeyM = 1;
-        PressedKeyI = 0;
+    else if(TempKey == KEY_M) {
         BoughtTroop = 2;
     }
-    if(PressedKeyM) {
-        DrawTick(Tick, MapBorderX - 130, MapBorderY + 110);
+    else if(TempKey == KEY_A) {
+        BoughtTroop = 3;
     }
+    else if(TempKey == KEY_T) {
+        BoughtTroop = 4;
+    }
+    if(BoughtTroop) DrawTick(Tick, MapBorderX - 130, (BoughtTroop- 1) * 60 + 10);
     return;
 }
-void DrawTroopBuyScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint) {
+void DrawTroopBuyScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Artillery_Icon, Texture2D Tank_Icon) {
     DrawTexture(Infantry_Icon, MapBorderX - 130, MapBorderY + 10, WHITE);
-    DrawTexture(Medic_Icon, MapBorderX - 130, MapBorderY + 110, WHITE);
-    DrawTexture(WarPoint, MapBorderX - 40, MapBorderY + 10, WHITE);
-    DrawTexture(WarPoint, MapBorderX - 40, MapBorderY + 110, WHITE);
+    DrawTexture(Medic_Icon, MapBorderX - 130, MapBorderY + 70, WHITE);
+    DrawTexture(Artillery_Icon, MapBorderX - 130, MapBorderY + 130, WHITE);
+    DrawTexture(Tank_Icon, MapBorderX - 130, MapBorderY + 190, WHITE);
+    DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 10, WHITE);
+    DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 70, WHITE);
+    DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 130, WHITE);
+    DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 190, WHITE);
     DrawText(TextFormat("%d", Infantry_Cost), MapBorderX - 70, MapBorderY + 10, 30, BLACK);
-    DrawText(TextFormat("%d", Medic_Cost), MapBorderX - 70, MapBorderY + 110, 30, BLACK);
+    DrawText(TextFormat("%d", Medic_Cost), MapBorderX - 70, MapBorderY + 70, 30, BLACK);
+    DrawText(TextFormat("%d", Artillery_Cost), MapBorderX - 70, MapBorderY + 130, 30, BLACK);
+    DrawText(TextFormat("%d", Tank_Cost), MapBorderX - 70, MapBorderY + 190, 30, BLACK);
     DrawText("I", MapBorderX - 140, MapBorderY + 10, 15, BLACK);
-    DrawText("M", MapBorderX - 145, MapBorderY + 110, 15, BLACK);
+    DrawText("M", MapBorderX - 145, MapBorderY + 70, 15, BLACK);
+    DrawText("A", MapBorderX - 145, MapBorderY + 130, 15, BLACK);
+    DrawText("T", MapBorderX - 145, MapBorderY + 190, 15, BLACK);
     DrawText("To skip don't buy\nanything and confirm.", MapBorderX, MapBorderY + 310, 35, BLACK);
     return;
 }
@@ -673,7 +745,10 @@ void ChangeTileSelected(Image Map, int Map_width, int Map_height) {
 }
 void DrawTileSelected() {
     if(TileSelected == 0) DrawText("Select \na \ntile", 10, 10, 30, BLACK);
-    else DrawText(TextFormat("Tile %d", TileSelected), 10, 10, 30, MouseColor);
+    else { 
+        DrawText(TextFormat("Tile %d", TileSelected), 10, 10, 30, BLACK);
+        DrawText(Terrain[TileSelected - 1].c_str(), 10, 40, 25, BLACK);
+    }
 }
 void CommanderPlacement(Image image, int Map_width, int Map_height) {
     DrawTileSelected();
@@ -711,20 +786,40 @@ void AddBoughtTroopToTheTroopBank() {
                     case 1:
                         RedTroopBank[i] = infantry;
                         RedTroopBank[i].side = 'r';
-                        RedWarPoints -= 5;
+                        RedWarPoints -= Infantry_Cost;
                         if(RedWarPoints < 0) {
                             cout << "You don't have enough War Points!" << endl;
-                            RedWarPoints += 5;
+                            RedWarPoints += Infantry_Cost;
                             return;
                         }
                         break;
                     case 2:
                         RedTroopBank[i] = medic;
                         RedTroopBank[i].side = 'r';
-                        RedWarPoints -= 10;
+                        RedWarPoints -= Medic_Cost;
                         if(RedWarPoints < 0) {
                             cout << "You don't have enough War Points!" << endl;
-                            RedWarPoints += 5;
+                            RedWarPoints += Medic_Cost;
+                            return;
+                        }
+                        break;
+                    case 3:
+                        RedTroopBank[i] = artillery;
+                        RedTroopBank[i].side = 'r';
+                        RedWarPoints -= Artillery_Cost;
+                        if(RedWarPoints < 0) {
+                            cout << "You don't have enough War Points!" << endl;
+                            RedWarPoints += Artillery_Cost;
+                            return;
+                        }
+                        break;
+                    case 4:
+                        RedTroopBank[i] = tank;
+                        RedTroopBank[i].side = 'r';
+                        RedWarPoints -= Tank_Cost;
+                        if(RedWarPoints < 0) {
+                            cout << "You don't have enough War Points!" << endl;
+                            RedWarPoints += Tank_Cost;
                             return;
                         }
                         break;
@@ -747,20 +842,40 @@ void AddBoughtTroopToTheTroopBank() {
                     case 1:
                         BlueTroopBank[i] = infantry;
                         BlueTroopBank[i].side = 'b';
-                        BlueWarPoints -= 5;
+                        BlueWarPoints -= Infantry_Cost;
                         if(BlueWarPoints < 0) {
                             cout << "You don't have enough War Points!" << endl;
-                            BlueWarPoints += 5;
+                            BlueWarPoints += Infantry_Cost;
                             return;
                         }
                         break;
                     case 2:
                         BlueTroopBank[i] = medic;
                         BlueTroopBank[i].side = 'b';
-                        BlueWarPoints -= 10;
+                        BlueWarPoints -= Medic_Cost;
                         if(BlueWarPoints < 0) {
                             cout << "You don't have enough War Points!" << endl;
-                            BlueWarPoints += 10;
+                            BlueWarPoints += Medic_Cost;
+                            return;
+                        }
+                        break;
+                    case 3:
+                        BlueTroopBank[i] = artillery;
+                        BlueTroopBank[i].side = 'b';
+                        BlueWarPoints -= Artillery_Cost;
+                        if(BlueWarPoints < 0) {
+                            cout << "You don't have enough War Points!" << endl;
+                            BlueWarPoints += Artillery_Cost;
+                            return;
+                        }
+                        break;
+                    case 4:
+                        BlueTroopBank[i] = tank;
+                        BlueTroopBank[i].side = 'b';
+                        BlueWarPoints -= Tank_Cost;
+                        if(BlueWarPoints < 0) {
+                            cout << "You don't have enough War Points!" << endl;
+                            BlueWarPoints += Tank_Cost;
                             return;
                         }
                         break;
@@ -777,14 +892,14 @@ void AddBoughtTroopToTheTroopBank() {
         Action = 0;
     }
 }
-void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
+void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon) {
     int RedTroopCount = 0;
     int BlueTroopCount = 0;
     if(Round % 2 == 0) {
         if(!TroopChosen) {
             DrawText("Select a troop from\nyour troop bank to place", MapBorderX + 10, MapBorderY + 310, 25, BLACK);
             for(int i = 0; i < 10; ++i) {
-                TempDraw = DrawTroopIcon(RedTroopBank[i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon);
+                TempDraw = DrawTroopIcon(RedTroopBank[i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon);
                 DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
                 DrawText(TextFormat("%d", i), MapBorderX - (((i + 1) % 2) * 60 + 84), (i / 2) * 60 + 10, 15, BLACK);
             }
@@ -875,7 +990,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
         if(!TroopChosen) {
             DrawText("Select a troop from\nyour troop bank to place", MapBorderX + 10, MapBorderY + 310, 25, BLACK);
             for(int i = 0; i < 10; ++i) {
-                TempDraw = DrawTroopIcon(BlueTroopBank[i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon);
+                TempDraw = DrawTroopIcon(BlueTroopBank[i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon);
                 DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
                 DrawText(TextFormat("%d", i), MapBorderX - (((i + 1) % 2) * 60 + 84), (i / 2) * 60 + 10, 15, BLACK);
             }
@@ -964,7 +1079,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
         }
     }
 }
-void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
+void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon) {
     int RedTroopCount = 0;
     int BlueTroopCount = 0;
     if(!FromTileSelected) {
@@ -995,7 +1110,7 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
     if(FromTileSelected != 0) {
         if(!TroopChosen) {
             for(int i = 0; i < 10; ++i) {
-                TempDraw = DrawTroopIcon(Troops[FromTileSelected - 1][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon);
+                TempDraw = DrawTroopIcon(Troops[FromTileSelected - 1][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon);
                 DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
                 if(Troops[FromTileSelected - 1][i].type != 'e') { 
                     RedBlue = DrawSide(Troops[FromTileSelected - 1][i].side, Red_Icon, Blue_Icon);
@@ -1136,7 +1251,7 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
         }
     }
 }
-void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
+void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon) {
     if(!PressedKeyC && !PressedKeyP && IsKeyPressed(KEY_M)) {
         PressedKeyM = 1;
     }
@@ -1150,7 +1265,7 @@ void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon,
         DrawText("Press M to move a troop\nPress P to place a troop\nPress C to cancel", MapBorderX + 10, MapBorderY + 310, 25, BLACK);
     }
     if(PressedKeyP) {
-        PlaceScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Low_health, Medium_health, High_health, Full_health);
+        PlaceScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon);
         return;
     }
     else if(PressedKeyC) {
@@ -1161,10 +1276,10 @@ void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon,
         return;
     }
     else if(PressedKeyM) {
-        MoveScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health);
+        MoveScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon);
     }
 }
-void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Tick, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
+void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Tick, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon) {
     if(TileSelected == 0) {
         DrawTileSelected();
         ChangeTileSelected(Map, Map.width, Map.height);
@@ -1172,35 +1287,10 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
     else {
         if(!TroopChosen) {
             for(int i = 0; i < 10; ++i) {
-                switch(Troops[TileSelected - 1][i].type) {
-                    case 'e':
-                        TempDraw = Empty_Icon;
-                        break;
-                    case 'c':
-                        TempDraw = Commander_Icon;
-                        break;
-                    case 'm':
-                        TempDraw = Medic_Icon;
-                        break;
-                    case 'i':
-                        TempDraw = Infantry_Icon;
-                        break;
-                }
-                switch(Troops[TileSelected - 1][i].side) {
-                    case 'r':
-                        RedBlue = Red_Icon;
-                        break;
-                    case 'b':
-                        RedBlue = Blue_Icon;
-                        break;
-                    case 'e':
-                        ItIsAnEmptySlot = 1;
-                        break;
-                    default: 
-                        break;
-                }
+                TempDraw = DrawTroopIcon(Troops[TileSelected - 1][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon);
                 DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
                 if(!ItIsAnEmptySlot) { 
+                    RedBlue = DrawSide(Troops[TileSelected - 1][i].side, Red_Icon, Blue_Icon);
                     DrawTexture(RedBlue, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
                     Health = DrawTroopHealth(Troops[TileSelected - 1][i].health, Troops[TileSelected - 1][i].type, Low_health, Medium_health, High_health, Full_health);
                     DrawTexture(Health, MapBorderX - (((i + 1) % 2) * 60 + 73), (i / 2) * 60 + 51, WHITE);
@@ -1245,44 +1335,29 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
                     TroopChosen = 0;
                 }
                 else if(Troops[TileSelected - 1][Key - 1].side == 'r') {
+                    int First = 0;
+                    int MaxHealth = 0;
                     switch(Troops[TileSelected - 1][Key - 1].type) {
                         case 'i':
-                            if(Troops[TileSelected - 1][Key - 1].health == 10) {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                                RedWarPoints += 3;
-                            }
-                            else if(Troops[TileSelected - 1][Key - 1].health >= 7 && Troops[TileSelected - 1][Key - 1].health < 10) {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                                RedWarPoints += 2;
-                            }
-                            else if(Troops[TileSelected - 1][Key - 1].health >= 4 && Troops[TileSelected - 1][Key - 1].health < 7) {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                                RedWarPoints += 1;
-                            }
-                            else {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                            }
+                            First = Infantry_Cost;
+                            MaxHealth = Infantry_Full;
                             break;
                         case 'm':
-                            if(Troops[TileSelected - 1][Key - 1].health == 5) {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                                RedWarPoints += 6;
-                            }
-                            else if(Troops[TileSelected - 1][Key - 1].health >= 3 && Troops[TileSelected - 1][Key - 1].health < 5) {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                                RedWarPoints += 4;
-                            }
-                            else if(Troops[TileSelected - 1][Key - 1].health >= 2 && Troops[TileSelected - 1][Key - 1].health < 3) {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                                RedWarPoints += 2;
-                            }
-                            else {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                            }
+                            First = Medic_Cost;
+                            MaxHealth = Medic_Full;
+                            break;
+                        case 'a':
+                            First = Artillery_Cost;
+                            MaxHealth = Artillery_Full;
+                            break;
+                        case 't': 
+                            First = Tank_Cost;
+                            MaxHealth = Tank_Full;
                             break;
                         default:
                             break;
                     }
+                    RedWarPoints += (First * 6 / 10) * (Troops[TileSelected - 1][Key - 1].health / MaxHealth);
                     Round++;
                     TroopChosen = 0;
                     ItIsAnEmptySlot = 0;
@@ -1307,44 +1382,29 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
                     TroopChosen = 0;
                 }
                 else if(Troops[TileSelected - 1][Key - 1].side == 'b') {
+                    int First = 0;
+                    int MaxHealth = 0;
                     switch(Troops[TileSelected - 1][Key - 1].type) {
                         case 'i':
-                            if(Troops[TileSelected - 1][Key - 1].health == 10) {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                                BlueWarPoints += 3;
-                            }
-                            else if(Troops[TileSelected - 1][Key - 1].health >= 7 && Troops[TileSelected - 1][Key - 1].health <= 9) {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                                BlueWarPoints += 2;
-                            }
-                            else if(Troops[TileSelected - 1][Key - 1].health >= 4 && Troops[TileSelected - 1][Key - 1].health <= 6) {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                                BlueWarPoints += 1;
-                            }
-                            else {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                            }
+                            First = Infantry_Cost;
+                            MaxHealth = Infantry_Full;
                             break;
                         case 'm':
-                            if(Troops[TileSelected - 1][Key - 1].health == 5) {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                                BlueWarPoints += 6;
-                            }
-                            else if(Troops[TileSelected - 1][Key - 1].health >= 3 && Troops[TileSelected - 1][Key - 1].health <= 4) {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                                BlueWarPoints += 4;
-                            }
-                            else if(Troops[TileSelected - 1][Key - 1].health == 2) {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                                BlueWarPoints += 2;
-                            }
-                            else {
-                                Troops[TileSelected - 1][Key - 1] = empty_troop;
-                            }
+                            First = Medic_Cost;
+                            MaxHealth = Medic_Full;
+                            break;
+                        case 'a':
+                            First = Artillery_Cost;
+                            MaxHealth = Artillery_Full;
+                            break;
+                        case 't': 
+                            First = Tank_Cost;
+                            MaxHealth = Tank_Full;
                             break;
                         default:
                             break;
                     }
+                    BlueWarPoints += (First * 6 / 10) * (Troops[TileSelected - 1][Key - 1].health / MaxHealth);
                     Round++;
                     TroopChosen = 0;
                     ItIsAnEmptySlot = 0;
@@ -1359,7 +1419,7 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
     }
     return;
 }
-void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Tick, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
+void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Tick, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon) {
     if(Round == 0 || Round == 1) {
         CommanderPlacement(Map, Map_width, Map_height);
     }
@@ -1387,7 +1447,7 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
 
     }
     else if(Action == 1) {
-        DrawTroopBuyScreen(Infantry_Icon, Medic_Icon, WarPoint);
+        DrawTroopBuyScreen(Infantry_Icon, Medic_Icon, WarPoint, Artillery_Icon, Tank_Icon);
         DrawCheckboxes();
         Checkbox = ControlCheckboxes();
         if(Checkbox == 2) {
@@ -1419,10 +1479,10 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
         TroopBuying(Tick);
     }
     else if(Action == 2) {
-        DrawMoveandPlaceTroopsScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health);
+        DrawMoveandPlaceTroopsScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon);
     }
     else if(Action == 3) {
-        DrawDeleteTroopsScreen(Map, Infantry_Icon, Medic_Icon, WarPoint, Tick, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health);
+        DrawDeleteTroopsScreen(Map, Infantry_Icon, Medic_Icon, WarPoint, Tick, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon);
     }
 }
 void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
@@ -1522,27 +1582,53 @@ void BotMove() {
         }
         else {
             if(Move == 1) {
-                int BotBuy = GetRandomValue(1, 2);
+                int BotBuy = GetRandomValue(1, 4);
                 if(BotBuy == 1) {
-                    if(BlueWarPoints >= 5) {
+                    if(BlueWarPoints >= Infantry_Cost) {
                         for(int i = 0; i < 10; ++i) {
                             if(BlueTroopBank[i].type == 'e') {
                                 BlueTroopBank[i] = infantry;
                                 BlueTroopBank[i].side = 'b';
-                                BlueWarPoints -= 5;
+                                BlueWarPoints -= Infantry_Cost;
                                 MoveMade = 1;
                                 break;
                             }
                         }
                     }
                 }
-                else {
-                    if(BlueWarPoints >= 10) {
+                else if (BotBuy == 2) {
+                    if(BlueWarPoints >= Medic_Cost) {
                         for(int i = 0; i < 10; ++i) {
                             if(BlueTroopBank[i].type == 'e') {
                                 BlueTroopBank[i] = medic;
                                 BlueTroopBank[i].side = 'b';
-                                BlueWarPoints -= 5;
+                                BlueWarPoints -= Medic_Cost;
+                                MoveMade = 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if (BotBuy == 3) {
+                    if(BlueWarPoints >= Artillery_Cost) {
+                        for(int i = 0; i < 10; ++i) {
+                            if(BlueTroopBank[i].type == 'e') {
+                                BlueTroopBank[i] = artillery;
+                                BlueTroopBank[i].side = 'b';
+                                BlueWarPoints -= Artillery_Cost;
+                                MoveMade = 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if (BotBuy == 4) {
+                    if(BlueWarPoints >= Tank_Cost) {
+                        for(int i = 0; i < 10; ++i) {
+                            if(BlueTroopBank[i].type == 'e') {
+                                BlueTroopBank[i] = tank;
+                                BlueTroopBank[i].side = 'b';
+                                BlueWarPoints -= Tank_Cost;
                                 MoveMade = 1;
                                 break;
                             }
@@ -1684,139 +1770,47 @@ void BotMove() {
     Round++;
     return;
 }
-void DrawTroops( Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) { // bu fonksiyonu şimdilik elimle koordinat girerek yaptım sonra dosyadan orta noktaları çeken bir sistem haline getireceğim.
+void DrawTroops( Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon) { // bu fonksiyonu şimdilik elimle koordinat girerek yaptım sonra dosyadan orta noktaları çeken bir sistem haline getireceğim.
     for(int i = 0; i < 10; ++i) {
-        switch(Troops[3][i].type) {
-            case 'c':
-                TempDraw = Commander_Icon;
-                break;
-            case 'i':
-                TempDraw = Infantry_Icon;
-                break;
-            case 'm':
-                TempDraw = Medic_Icon;
-                break;
-            case 'e':
-                TempDraw = Empty_Icon;
-                break;
-            default:
-                break;
-        }
+        TempDraw = DrawTroopIcon(Troops[3][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon);
         Health = DrawTroopHealth(Troops[3][i].health, Troops[3][i].type, Low_health, Medium_health, High_health, Full_health);
-        switch(Troops[3][i].side) {
-            case 'r':
-                RedBlue = Red_Icon;
-                break;
-            case 'b':
-                RedBlue = Blue_Icon;
-                break;
-            default:
-                break;
-        }
+
         DrawTextureEx(TempDraw, {(float)(i % 5) * 25 + 203, (float)(i / 5) * 25 + 38}, 0, 0.4, WHITE);
         if(Troops[3][i].type != 'e') {
+            RedBlue = DrawSide(Troops[3][i].side, Red_Icon, Blue_Icon);
             DrawTextureEx(Health, {(float)(i % 5) * 25 + 204, (float)(i / 5) * 25 + 55}, 0, 0.4, WHITE);
             DrawTextureEx(RedBlue, {(float)(i % 5) * 25 + 203, (float)(i / 5) * 25 + 38}, 0, 0.4, WHITE);
         }
     }
     for(int i = 0; i < 10; ++i) {
-        switch(Troops[0][i].type) {
-            case 'c':
-                TempDraw = Commander_Icon;
-                break;
-            case 'i':
-                TempDraw = Infantry_Icon;
-                break;
-            case 'm':
-                TempDraw = Medic_Icon;
-                break;
-            case 'e':
-                TempDraw = Empty_Icon;
-                break;
-            default:
-                break;
-        }
+        TempDraw = DrawTroopIcon(Troops[0][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon);
         Health = DrawTroopHealth(Troops[0][i].health, Troops[0][i].type, Low_health, Medium_health, High_health, Full_health);
-        switch(Troops[0][i].side) {
-            case 'r':
-                RedBlue = Red_Icon;
-                break;
-            case 'b':
-                RedBlue = Blue_Icon;
-                break;
-            default:
-                break;
-        }
+
         DrawTextureEx(TempDraw, {(float)(i % 5) * 25 + 186, (float)(i / 5) * 25 + 194}, 0, 0.4, WHITE);
         if(Troops[0][i].type != 'e') {
+            RedBlue = DrawSide(Troops[0][i].side, Red_Icon, Blue_Icon);
             DrawTextureEx(Health, {(float)(i % 5) * 25 + 187, (float)(i / 5) * 25 + 211}, 0, 0.4, WHITE);
             DrawTextureEx(RedBlue, {(float)(i % 5) * 25 + 186, (float)(i / 5) * 25 + 194}, 0, 0.4, WHITE);
         }
     }
     for(int i = 0; i < 10; ++i) {
-        switch(Troops[1][i].type) {
-            case 'c':
-                TempDraw = Commander_Icon;
-                break;
-            case 'i':
-                TempDraw = Infantry_Icon;
-                break;
-            case 'm':
-                TempDraw = Medic_Icon;
-                break;
-            case 'e':
-                TempDraw = Empty_Icon;
-                break;
-            default:
-                break;
-        }
+        TempDraw = DrawTroopIcon(Troops[1][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon);
         Health = DrawTroopHealth(Troops[1][i].health, Troops[1][i].type, Low_health, Medium_health, High_health, Full_health);
-        switch(Troops[1][i].side) {
-            case 'r':
-                RedBlue = Red_Icon;
-                break;
-            case 'b':
-                RedBlue = Blue_Icon;
-                break;
-            default:
-                break;
-        }
+
         DrawTextureEx(TempDraw, {(float)(i % 5) * 25 + 464, (float)(i / 5) * 25 + 197}, 0, 0.4, WHITE);
         if(Troops[1][i].type != 'e') {
+            RedBlue = DrawSide(Troops[1][i].side, Red_Icon, Blue_Icon);
             DrawTextureEx(Health, {(float)(i % 5) * 25 + 465, (float)(i / 5) * 25 + 214}, 0, 0.4, WHITE);
             DrawTextureEx(RedBlue, {(float)(i % 5) * 25 + 464, (float)(i / 5) * 25 + 197}, 0, 0.4, WHITE);
         }
     }
     for(int i = 0; i < 10; ++i) {
-        switch(Troops[2][i].type) {
-            case 'c':
-                TempDraw = Commander_Icon;
-                break;
-            case 'i':
-                TempDraw = Infantry_Icon;
-                break;
-            case 'm':
-                TempDraw = Medic_Icon;
-                break;
-            case 'e':
-                TempDraw = Empty_Icon;
-                break;
-            default:
-                break;
-        }
+        TempDraw = DrawTroopIcon(Troops[2][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon);
         Health = DrawTroopHealth(Troops[2][i].health, Troops[2][i].type, Low_health, Medium_health, High_health, Full_health);
-        switch(Troops[2][i].side) {
-            case 'r':
-                RedBlue = Red_Icon;
-                break;
-            case 'b':
-                RedBlue = Blue_Icon;
-                break;
-            default:
-                break;
-        }
+
         DrawTextureEx(TempDraw, {(float)(i % 5) * 25 + 440, (float)(i / 5) * 25 + 44}, 0, 0.4, WHITE);
         if(Troops[2][i].type != 'e') {
+            RedBlue = DrawSide(Troops[2][i].side, Red_Icon, Blue_Icon);            
             DrawTextureEx(Health, {(float)(i % 5) * 25 + 441, (float)(i / 5) * 25 + 61}, 0, 0.4, WHITE);
             DrawTextureEx(RedBlue, {(float)(i % 5) * 25 + 440, (float)(i / 5) * 25 + 44}, 0, 0.4, WHITE);
         }
@@ -1845,6 +1839,9 @@ int main() {
     Image Save_png = LoadImage("resources/Save.png");
     Image Load_png = LoadImage("resources/Load.png");
     Image Trash_png = LoadImage("resources/Delete.png");
+    Image Artillery_png = LoadImage("resources/Artillery.png");
+    Image Tank_png = LoadImage("resources/Tank.png");
+    Image Show_png = LoadImage("resources/map_show.png");
     Texture2D Tick = LoadTextureFromImage(Tick_png);
     Texture2D Infantry_Icon = LoadTextureFromImage(Infantry_png);
     Texture2D Medic_Icon = LoadTextureFromImage(Medic_png);
@@ -1863,6 +1860,13 @@ int main() {
     Texture2D Save = LoadTextureFromImage(Save_png);
     Texture2D Load = LoadTextureFromImage(Load_png);
     Texture2D TrashBin = LoadTextureFromImage(Trash_png);
+    Texture2D Artillery_Icon = LoadTextureFromImage(Artillery_png);
+    Texture2D Tank_Icon = LoadTextureFromImage(Tank_png);
+    Texture2D Show_Map = LoadTextureFromImage(Show_png);
+    Terrain[0] = "forest";
+    Terrain[1] = "plains";
+    Terrain[2] = "city";
+    Terrain[3] = "mountains";
     SetTargetFPS(60);
     restart:
     restart();
@@ -1928,13 +1932,14 @@ int main() {
                 ClearBackground(WHITE);
                 if(IncreaseControl && !Increased) IncreaseWarPoints();
                 DrawTexture(Map, MapBorderX, MapBorderY, WHITE); // Draw map
-                DrawActions(Map_png, Map.width, Map.height, Infantry_Icon, Medic_Icon, WarPoint, Tick, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health);
+                DrawTexture(Show_Map, MapBorderX, MapBorderY, WHITE);
+                DrawActions(Map_png, Map.width, Map.height, Infantry_Icon, Medic_Icon, WarPoint, Tick, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon);
                 DrawTurn(Map.width, Map.height, WarPoint);
                 DrawRound(Map.width, Map.height);
                 DrawTexture(Restart, 628, 378, WHITE);
                 DrawTexture(Save, 628, 356, WHITE);
                 DrawTexture(Load, 628, 334, WHITE);
-                DrawTroops(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health);
+                DrawTroops(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon);
                 if(MouseX >= 628 && MouseX <= 648 && MouseY >= 378 && MouseY <= 398) {
                     Restarted = 1;
                     goto restart;
@@ -2016,6 +2021,9 @@ int main() {
     UnloadImage(Save_png);
     UnloadImage(Load_png);
     UnloadImage(Trash_png);
+    UnloadImage(Artillery_png);
+    UnloadImage(Tank_png);
+    UnloadImage(Show_png);
     UnloadTexture(Map);
     UnloadTexture(Infantry_Icon);
     UnloadTexture(Medic_Icon);
@@ -2034,6 +2042,9 @@ int main() {
     UnloadTexture(Save);
     UnloadTexture(Load);
     UnloadTexture(TrashBin);
+    UnloadTexture(Artillery_Icon);
+    UnloadTexture(Tank_Icon);
+    UnloadTexture(Show_Map);
     CloseWindow();
     return 0;
 }

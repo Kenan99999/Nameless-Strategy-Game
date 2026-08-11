@@ -114,6 +114,7 @@ const int MapBorderY = 0;
 
 // Functions
 
+
 void DrawHowToPlayScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon) {
     DrawTexture(Commander_Icon, 10, 10, WHITE);
     DrawText("This is commander and every player only have 1 of these.\nThe main goal of the game is to kill enemy commander.\nCommander stats-> Health:1, Attack:0, Defense:0, Heal:0\n(Commander gives a 1,5x attack boost to friendly troops)", 62, 10, 19, BLACK);
@@ -224,6 +225,7 @@ void ReArrangeTroops() {
                     if(Troops[i][k].type != 'e') {
                         Troops[i][j] = Troops[i][k];
                         Troops[i][k] = empty_troop;
+                        break;
                     }
                 }
             }
@@ -235,6 +237,7 @@ void ReArrangeTroops() {
                 if(RedTroopBank[j].type != 'e') {
                     RedTroopBank[i] = RedTroopBank[j];
                     RedTroopBank[j] = empty_troop;
+                    break;
                 }
             }
         }
@@ -245,6 +248,7 @@ void ReArrangeTroops() {
                 if(BlueTroopBank[j].type != 'e') {
                     BlueTroopBank[i] = BlueTroopBank[j];
                     BlueTroopBank[j] = empty_troop;
+                    break;
                 }
             }
         }
@@ -326,9 +330,6 @@ void Combat() {
                     break;
             }
         }
-        if((!BlueTroopCount || !RedTroopCount ) && (!BlueCommander && !RedCommander)) {
-            continue;
-        }
         if(TotalRedAttack / 3 >= 1.0) TotalRedAttack += (rand() % (int)(TotalRedAttack / 3));
         if(TotalRedDefense / 3 >= 1.0) TotalRedDefense += (rand() % (int)(TotalRedDefense / 3));
         if(TotalRedHeal / 3 >= 1.0) TotalRedHeal += (rand() % (int)(TotalRedHeal / 3));
@@ -344,10 +345,10 @@ void Combat() {
         if(TotalBlueAttack > TotalRedDefense)  TakenRedDamage = TotalBlueAttack - TotalRedDefense;
         if(TotalRedAttack > TotalBlueDefense) TakenBlueDamage = TotalRedAttack - TotalBlueDefense;
         if(!TakenBlueDamage && RedTroopCount) {
-            TakenBlueDamage = RedTroopCount;
+            TakenBlueDamage = 1;
         }
         if(!TakenRedDamage && BlueTroopCount) {
-            TakenRedDamage = BlueTroopCount;
+            TakenRedDamage = 1;
         }
         cout << TakenRedDamage << " " << TakenBlueDamage << "tile: " << i + 1 << endl;
         for(int j = 0; j < 10; ++j) {
@@ -418,6 +419,9 @@ void Combat() {
                     break;
             }
         }
+        if((!BlueTroopCount || !RedTroopCount ) && (!BlueCommander && !RedCommander)) {
+            continue;
+        }
         for(int j = 0; j < 10; ++j) {
             if(Troops[i][j].type != 'c') {
                 switch(Troops[i][j].side) {
@@ -455,11 +459,11 @@ void Combat() {
     return;
 }
 void DrawCreditsandChangelogScreen() {
-    DrawText("Changelog:", 10, 10, 30, BLACK);
+    DrawText("Changelog:\nQuality of life update", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("- Added a bot\n(I know it is dumb)\n- Fixed some loading bugs", 10, 70, 25, BLACK);
+    DrawText("- You can now see troops\nwithout opening the tile\n- Fixed vanishing troops bug", 10, 70, 25, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\n\nMade with:\nC++/Raylib", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.7", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.7.1", 10, 360, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -495,6 +499,34 @@ Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D
     }
     return Low_health;
 }
+Texture2D DrawTroopIcon(char type, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon) {
+    switch(type) {
+        case 'i':
+            return Infantry_Icon;
+        case 'm':
+            return Medic_Icon;
+        case 'c':
+            return Commander_Icon;
+        case 'e':
+            return Empty_Icon;
+        default:
+            break;
+    }
+    cout << "ERROR" << endl;
+    return Empty_Icon;
+}
+Texture2D DrawSide(char Side, Texture2D Red_Icon, Texture2D Blue_Icon) {
+    switch(Side) {
+        case 'r':
+            return Red_Icon;
+        case 'b':
+            return Blue_Icon;
+        default:
+            break;
+    }
+    cout << "ERROR" << endl;
+    return Red_Icon;
+}
 void GetMouseCoords() {
     MouseX = GetMouseX();
     MouseY = GetMouseY();
@@ -505,7 +537,7 @@ void DrawTitleScreen(Texture2D Logo) {
     DrawRectangle(330, 150, 300, 100, GRAY);
     DrawText("Play with a friend", 30, 180, 30, BLACK);
     DrawText("Play with a bot", 350, 180, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.7", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.7.1", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
     DrawRectangle(500, 340, 140, 50, GRAY);
@@ -752,20 +784,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
         if(!TroopChosen) {
             DrawText("Select a troop from\nyour troop bank to place", MapBorderX + 10, MapBorderY + 310, 25, BLACK);
             for(int i = 0; i < 10; ++i) {
-                switch(RedTroopBank[i].type) {
-                    case 'e':
-                        TempDraw = Empty_Icon;
-                        break;
-                    case 'c':
-                        TempDraw = Commander_Icon;
-                        break;
-                    case 'm':
-                        TempDraw = Medic_Icon;
-                        break;
-                    case 'i':
-                        TempDraw = Infantry_Icon;
-                        break;
-                }
+                TempDraw = DrawTroopIcon(RedTroopBank[i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon);
                 DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
                 DrawText(TextFormat("%d", i), MapBorderX - (((i + 1) % 2) * 60 + 84), (i / 2) * 60 + 10, 15, BLACK);
             }
@@ -856,20 +875,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
         if(!TroopChosen) {
             DrawText("Select a troop from\nyour troop bank to place", MapBorderX + 10, MapBorderY + 310, 25, BLACK);
             for(int i = 0; i < 10; ++i) {
-                switch(BlueTroopBank[i].type) {
-                    case 'e':
-                        TempDraw = Empty_Icon;
-                        break;
-                    case 'c':
-                        TempDraw = Commander_Icon;
-                        break;
-                    case 'm':
-                        TempDraw = Medic_Icon;
-                        break;
-                    case 'i':
-                        TempDraw = Infantry_Icon;
-                        break;
-                }
+                TempDraw = DrawTroopIcon(BlueTroopBank[i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon);
                 DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
                 DrawText(TextFormat("%d", i), MapBorderX - (((i + 1) % 2) * 60 + 84), (i / 2) * 60 + 10, 15, BLACK);
             }
@@ -989,41 +995,15 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
     if(FromTileSelected != 0) {
         if(!TroopChosen) {
             for(int i = 0; i < 10; ++i) {
-                switch(Troops[FromTileSelected - 1][i].type) {
-                    case 'e':
-                        TempDraw = Empty_Icon;
-                        break;
-                    case 'c':
-                        TempDraw = Commander_Icon;
-                        break;
-                    case 'm':
-                        TempDraw = Medic_Icon;
-                        break;
-                    case 'i':
-                        TempDraw = Infantry_Icon;
-                        break;
-                }
-                switch(Troops[FromTileSelected - 1][i].side) {
-                    case 'r':
-                        RedBlue = Red_Icon;
-                        break;
-                    case 'b':
-                        RedBlue = Blue_Icon;
-                        break;
-                    case 'e':
-                        ItIsAnEmptySlot = 1;
-                        break;
-                    default: 
-                        break;
-                }
+                TempDraw = DrawTroopIcon(Troops[FromTileSelected - 1][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon);
                 DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
-                if(!ItIsAnEmptySlot) { 
+                if(Troops[FromTileSelected - 1][i].type != 'e') { 
+                    RedBlue = DrawSide(Troops[FromTileSelected - 1][i].side, Red_Icon, Blue_Icon);
                     DrawTexture(RedBlue, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
                     Health = DrawTroopHealth(Troops[FromTileSelected - 1][i].health, Troops[FromTileSelected - 1][i].type, Low_health, Medium_health, High_health, Full_health);
                     DrawTexture(Health, MapBorderX - (((i + 1) % 2) * 60 + 73), (i / 2) * 60 + 51, WHITE);
                 }
                 DrawText(TextFormat("%d", i), MapBorderX - (((i + 1) % 2) * 60 + 84), (i / 2) * 60 + 10, 15, BLACK);
-                ItIsAnEmptySlot = 0;
                 TempKey = GetKeyPressed() - 47;
                 if(TempKey >= 1 && TempKey <= 10) {
                     Key = TempKey;
@@ -1041,7 +1021,6 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                 else if(Checkbox == 2) {
                     FromTileSelected = 0;
                     TileSelected = 0;
-                    ItIsAnEmptySlot = 0;
                     TroopChosen = 0;
                     Action = 0;
                     MovingTroop.type = 'n';
@@ -1117,7 +1096,6 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                                 Checkbox = 0;
                                 FromTileSelected = 0;
                                 TileSelected = 0;
-                                ItIsAnEmptySlot = 0;
                                 TroopChosen = 0;
                                 Action = 0;
                                 MovingTroop.type = 'n';
@@ -1144,7 +1122,6 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                     Checkbox = 0;
                     FromTileSelected = 0;
                     TileSelected = 0;
-                    ItIsAnEmptySlot = 0;
                     TroopChosen = 0;
                     Action = 0;
                     MovingTroop.type = 'n';
@@ -1534,7 +1511,7 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
 void BotMove() {
     bool MoveMade = 0;
     while(!MoveMade) {
-        int Move = GetRandomValue(1,3); // 1: Buy 2: Place 3: Move 4: Delete 5: SkipRound
+        int Move = GetRandomValue(1,5); // 1: Buy 2: Place 3: Move 4: Delete 5: SkipRound
         if(Round == 1) {
             int BotCommander = GetRandomValue(1, 4);
             if(Troops[BotCommander - 1][0].type == 'e') {
@@ -1707,7 +1684,144 @@ void BotMove() {
     Round++;
     return;
 }
-
+void DrawTroops( Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) { // bu fonksiyonu şimdilik elimle koordinat girerek yaptım sonra dosyadan orta noktaları çeken bir sistem haline getireceğim.
+    for(int i = 0; i < 10; ++i) {
+        switch(Troops[3][i].type) {
+            case 'c':
+                TempDraw = Commander_Icon;
+                break;
+            case 'i':
+                TempDraw = Infantry_Icon;
+                break;
+            case 'm':
+                TempDraw = Medic_Icon;
+                break;
+            case 'e':
+                TempDraw = Empty_Icon;
+                break;
+            default:
+                break;
+        }
+        Health = DrawTroopHealth(Troops[3][i].health, Troops[3][i].type, Low_health, Medium_health, High_health, Full_health);
+        switch(Troops[3][i].side) {
+            case 'r':
+                RedBlue = Red_Icon;
+                break;
+            case 'b':
+                RedBlue = Blue_Icon;
+                break;
+            default:
+                break;
+        }
+        DrawTextureEx(TempDraw, {(float)(i % 5) * 25 + 203, (float)(i / 5) * 25 + 38}, 0, 0.4, WHITE);
+        if(Troops[3][i].type != 'e') {
+            DrawTextureEx(Health, {(float)(i % 5) * 25 + 204, (float)(i / 5) * 25 + 55}, 0, 0.4, WHITE);
+            DrawTextureEx(RedBlue, {(float)(i % 5) * 25 + 203, (float)(i / 5) * 25 + 38}, 0, 0.4, WHITE);
+        }
+    }
+    for(int i = 0; i < 10; ++i) {
+        switch(Troops[0][i].type) {
+            case 'c':
+                TempDraw = Commander_Icon;
+                break;
+            case 'i':
+                TempDraw = Infantry_Icon;
+                break;
+            case 'm':
+                TempDraw = Medic_Icon;
+                break;
+            case 'e':
+                TempDraw = Empty_Icon;
+                break;
+            default:
+                break;
+        }
+        Health = DrawTroopHealth(Troops[0][i].health, Troops[0][i].type, Low_health, Medium_health, High_health, Full_health);
+        switch(Troops[0][i].side) {
+            case 'r':
+                RedBlue = Red_Icon;
+                break;
+            case 'b':
+                RedBlue = Blue_Icon;
+                break;
+            default:
+                break;
+        }
+        DrawTextureEx(TempDraw, {(float)(i % 5) * 25 + 186, (float)(i / 5) * 25 + 194}, 0, 0.4, WHITE);
+        if(Troops[0][i].type != 'e') {
+            DrawTextureEx(Health, {(float)(i % 5) * 25 + 187, (float)(i / 5) * 25 + 211}, 0, 0.4, WHITE);
+            DrawTextureEx(RedBlue, {(float)(i % 5) * 25 + 186, (float)(i / 5) * 25 + 194}, 0, 0.4, WHITE);
+        }
+    }
+    for(int i = 0; i < 10; ++i) {
+        switch(Troops[1][i].type) {
+            case 'c':
+                TempDraw = Commander_Icon;
+                break;
+            case 'i':
+                TempDraw = Infantry_Icon;
+                break;
+            case 'm':
+                TempDraw = Medic_Icon;
+                break;
+            case 'e':
+                TempDraw = Empty_Icon;
+                break;
+            default:
+                break;
+        }
+        Health = DrawTroopHealth(Troops[1][i].health, Troops[1][i].type, Low_health, Medium_health, High_health, Full_health);
+        switch(Troops[1][i].side) {
+            case 'r':
+                RedBlue = Red_Icon;
+                break;
+            case 'b':
+                RedBlue = Blue_Icon;
+                break;
+            default:
+                break;
+        }
+        DrawTextureEx(TempDraw, {(float)(i % 5) * 25 + 464, (float)(i / 5) * 25 + 197}, 0, 0.4, WHITE);
+        if(Troops[1][i].type != 'e') {
+            DrawTextureEx(Health, {(float)(i % 5) * 25 + 465, (float)(i / 5) * 25 + 214}, 0, 0.4, WHITE);
+            DrawTextureEx(RedBlue, {(float)(i % 5) * 25 + 464, (float)(i / 5) * 25 + 197}, 0, 0.4, WHITE);
+        }
+    }
+    for(int i = 0; i < 10; ++i) {
+        switch(Troops[2][i].type) {
+            case 'c':
+                TempDraw = Commander_Icon;
+                break;
+            case 'i':
+                TempDraw = Infantry_Icon;
+                break;
+            case 'm':
+                TempDraw = Medic_Icon;
+                break;
+            case 'e':
+                TempDraw = Empty_Icon;
+                break;
+            default:
+                break;
+        }
+        Health = DrawTroopHealth(Troops[2][i].health, Troops[2][i].type, Low_health, Medium_health, High_health, Full_health);
+        switch(Troops[2][i].side) {
+            case 'r':
+                RedBlue = Red_Icon;
+                break;
+            case 'b':
+                RedBlue = Blue_Icon;
+                break;
+            default:
+                break;
+        }
+        DrawTextureEx(TempDraw, {(float)(i % 5) * 25 + 440, (float)(i / 5) * 25 + 44}, 0, 0.4, WHITE);
+        if(Troops[2][i].type != 'e') {
+            DrawTextureEx(Health, {(float)(i % 5) * 25 + 441, (float)(i / 5) * 25 + 61}, 0, 0.4, WHITE);
+            DrawTextureEx(RedBlue, {(float)(i % 5) * 25 + 440, (float)(i / 5) * 25 + 44}, 0, 0.4, WHITE);
+        }
+    }
+}
 
 int main() {
     CreateMapBonds();
@@ -1770,6 +1884,7 @@ int main() {
 
         if(MouseClicked && GetTime() > 4) { // Mouse Controls
             GetMouseCoords();
+            cout << MouseX << " " << MouseY << endl;
             if(!GameStarted && MouseX >= 500 && MouseX <= 640 && MouseY >= 340 && MouseY <= 390 && !CreditScreen && !Restarted && !HowToPlayScreen) {
                 CreditScreen = 1;
             }
@@ -1819,6 +1934,7 @@ int main() {
                 DrawTexture(Restart, 628, 378, WHITE);
                 DrawTexture(Save, 628, 356, WHITE);
                 DrawTexture(Load, 628, 334, WHITE);
+                DrawTroops(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health);
                 if(MouseX >= 628 && MouseX <= 648 && MouseY >= 378 && MouseY <= 398) {
                     Restarted = 1;
                     goto restart;

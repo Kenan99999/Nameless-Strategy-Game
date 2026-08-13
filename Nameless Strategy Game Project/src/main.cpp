@@ -11,6 +11,18 @@ struct troop {
     float air_attack;
     float max_health;
 };
+struct building {
+    char type;
+    char WhoBuiltIt;
+    float health;
+    float Attack;
+    float Defense;
+    float AirAttack;
+    float Heal;
+    float Repair;
+    float max_health;
+    int cost;
+};
 troop commander {
     'c',
     'e',
@@ -81,6 +93,78 @@ troop plane {
     7,
     20
 };
+building trench{
+    't',
+    'e',
+    5,
+    0,
+    5,
+    0,
+    0,
+    0,
+    5,
+    10
+};
+building empty_building{
+    'e',
+    'e',
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+};
+building field_hospital {
+    'f',
+    'e',
+    5,
+    0,
+    0,
+    0,
+    5,
+    0,
+    5,
+    10
+};
+building anti_air {
+    'a',
+    'e',
+    5,
+    0,
+    0,
+    5,
+    0,
+    0,
+    5,
+    15
+};
+building repair_workshop {
+    'r',
+    'e',
+    10,
+    0,
+    0,
+    0,
+    0,
+    5,
+    10,
+    20
+};
+building army_house {
+    'h',
+    'e',
+    10,
+    5,
+    0,
+    0,
+    0,
+    0,
+    10,
+    15
+};
 
 using namespace std;
 using namespace filesystem;
@@ -109,6 +193,7 @@ int EmptyCounter = 0;
 bool IncreaseControl = 0;
 bool Increased = 0;
 int BoughtTroop = 0;
+int BoughtBuilding = 0;
 bool PressedKeyI = 0;
 bool PressedKeyM = 0;
 bool PressedKeyC = 0;
@@ -138,6 +223,7 @@ int Page = 0;
 vector<string> GameSaves;
 troop MovingTroop;
 troop SelectedTroop;
+building BuiltBuilding;
 Texture2D TempDraw;
 Texture2D RedBlue;
 Texture2D Health;
@@ -149,6 +235,7 @@ const int Plane_Cost = 30;
 troop RedTroopBank[10];
 troop BlueTroopBank[10];
 troop Troops[4][10];
+building Buildings[4][2];
 char SaveName[10];
 Color MouseColor = {255, 0, 0, 0};
 vector<vector<int>> Tiles(4);
@@ -161,20 +248,31 @@ const int screenHeight = 400;
 const int MapBorderX = 150;
 const int MapBorderY = 0;
 
+Image Trench_png;
+Image Field_png;
+Image Anti_png;
+Image Repair_png;
+Image Army_png;
+Texture2D Trench_Icon;
+Texture2D FieldHospital_Icon;
+Texture2D AntiAir_Icon;
+Texture2D RepairWorkshop_Icon;
+Texture2D ArmyHouse_Icon;
 // Functions
 
 
 void DrawHowToPlayScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Artillery_Icon, Texture2D Tank_Icon, Texture2D Plane_Icon) {
     DrawText(TextFormat("Page %d/2", Page + 1), 295, 380, 18, BLACK);
+    // Comments were an old easter egg in version Pre-alpha 0.8.1
     if(IsKeyPressed(KEY_LEFT) && Page > 0) {
         Page--;
     }
     if(IsKeyPressed(KEY_RIGHT) && Page < 1) {
         Page++;
     }
-    if(IsKeyPressed(KEY_K)) {
+    /*if(IsKeyPressed(KEY_K)) {
         Page = -1;
-    }
+    }*/
     if(Page == 1) {
         DrawText("<-", 10, 380, 18, BLACK);
         DrawTexture(Commander_Icon, 10, 10, WHITE);
@@ -192,18 +290,18 @@ void DrawHowToPlayScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2
     }
     else if(Page == 0) {
         DrawText("->", 630, 380, 18, BLACK);
-        DrawText("<-", 10, 380, 18, BLACK);
+        /*DrawText("<-", 10, 380, 18, BLACK);*/
         DrawText("How rounds work: Every round you can only make 1 action\nActions include buying, skipping, moving, placing and deleting\n(Bought troops will be sent into the troop bank waiting for placement)", 10, 10, 18, BLACK);
         DrawText("How warpoints work: Warpoints are the main currency to buy troops.\nIt will increase 1, 2 or 3 randomly every 5 rounds\nand will get a +1 increase every 20 rounds.\n(For instance it will increase 3, 4 or 5 randomly at round 45)", 10, 100, 18, BLACK);
         DrawText("How combat works: Combat happens at the start of every round\nTaken damage will be calculated by the formula enemyattack - yourdefense\nTaken damage will lower you troops health while heal increases it\nAir troops like plane will only be damaged with air attack\n(Combat includes a little bit of randomness for fun)", 10, 200, 18, BLACK);
         DrawText("How tiles work: Each tile has a different terrain\nevery terrain gives certain bonuses and debuffs\nForest: Attack 0.8x, Plains: Defense 0.8x,\nMountains: Attack 0.75x, Defense 1.5x, City: Defense 1.25x", 10, 300, 18, BLACK);
     }
-    else {
+    /*else {
         DrawText("->", 630, 380, 18, BLACK);
         DrawText("48 46 57\n45 65 100 ? ? 100 98 117 ? 108 100 105 ? 115", 10 , 180, 20, BLACK);
         DrawText("?543??5?4535?2432?567?87646????654?243\n????5435?4351?213214325?6546??4??????", 10 , 10, 20, BLACK);
         DrawText("?543??5?45??5435?4351?213214335?243\n??25?6546??4??2432?567?87646????654?????", 10 , 300, 20, BLACK);
-    }
+    }*/
 }
 void Saves() {
     if(exists("saves")) {
@@ -263,6 +361,7 @@ void GameSave() {
                 File << RedTroopBank[i].attack << endl;
                 File << RedTroopBank[i].defense << endl;
                 File << RedTroopBank[i].heal << endl;
+                File << RedTroopBank[i].max_health << endl;
             }
             for(int i = 0; i < 10; ++i) {
                 File << BlueTroopBank[i].type << endl;
@@ -271,6 +370,7 @@ void GameSave() {
                 File << BlueTroopBank[i].attack << endl;
                 File << BlueTroopBank[i].defense << endl;
                 File << BlueTroopBank[i].heal << endl;
+                File << BlueTroopBank[i].max_health << endl;
             }
             for(int i = 0; i < 4; ++i) {
                 for(int j = 0; j < 10; ++j) {
@@ -280,11 +380,25 @@ void GameSave() {
                     File << Troops[i][j].attack << endl;
                     File << Troops[i][j].defense << endl;
                     File << Troops[i][j].heal << endl;
+                    File << Troops[i][j].max_health << endl;
                 }
             }
             File << CombatHappened << endl;
             File << PlayWithABot << endl;
             File << Increased << endl;
+            for(int i = 0; i < 4; ++i) {
+                for(int j = 0; j < 2; ++j) {
+                    File << Buildings[i][j].type << endl;
+                    File << Buildings[i][j].WhoBuiltIt << endl;
+                    File << Buildings[i][j].health << endl;
+                    File << Buildings[i][j].Attack << endl;
+                    File << Buildings[i][j].Defense << endl;
+                    File << Buildings[i][j].AirAttack << endl;
+                    File << Buildings[i][j].Heal << endl;
+                    File << Buildings[i][j].Repair << endl;
+                    File << Buildings[i][j].max_health << endl;
+                }
+            }
         }
 
         SaveScreen = 0;
@@ -392,9 +506,14 @@ void Combat() {
         float TakenBlueDamage = 0;
         float RedAirAttack = 0;
         float BlueAirAttack = 0;
+        float RedRepair = 0;
+        float BlueRepair = 0;
+        int BlueBuilding = 0;
+        int RedBuilding = 0;
         for(int j = 0; j < 10; ++j) {
             switch(Troops[i][j].side) {
                 case 'r':
+                    RedBuilding++;
                     TotalRedAttack += Troops[i][j].attack;
                     TotalRedDefense += Troops[i][j].defense;
                     TotalRedHeal += Troops[i][j].heal;
@@ -403,6 +522,7 @@ void Combat() {
                     else RedCommander = 1;
                     break;
                 case 'b':
+                    BlueBuilding++;
                     TotalBlueAttack += Troops[i][j].attack;
                     TotalBlueDefense += Troops[i][j].defense;
                     TotalBlueHeal += Troops[i][j].heal;
@@ -414,14 +534,32 @@ void Combat() {
                     break;
             }
         }
+        for(int j = 0; j < 2; ++j) {
+            if(Buildings[i][j].type != 'e' && (RedBuilding > BlueBuilding || RedBuilding == BlueBuilding && Buildings[i][j].WhoBuiltIt == 'r')) {
+                TotalRedAttack += Buildings[i][j].Attack;
+                TotalRedDefense += Buildings[i][j].Defense;
+                TotalRedHeal += Buildings[i][j].Heal;
+                RedAirAttack += Buildings[i][j].AirAttack;
+                RedRepair += Buildings[i][j].Repair;
+            }
+            if(Buildings[i][j].type != 'e' && (RedBuilding < BlueBuilding || RedBuilding == BlueBuilding && Buildings[i][j].WhoBuiltIt == 'b')) {
+                TotalBlueAttack += Buildings[i][j].Attack;
+                TotalBlueDefense += Buildings[i][j].Defense;
+                TotalBlueHeal += Buildings[i][j].Heal;
+                BlueAirAttack += Buildings[i][j].AirAttack;
+                BlueRepair += Buildings[i][j].Repair;
+            }
+        }
         if(TotalRedAttack / 3 >= 1.0) TotalRedAttack += (rand() % (int)(TotalRedAttack / 3));
         if(TotalRedDefense / 3 >= 1.0) TotalRedDefense += (rand() % (int)(TotalRedDefense / 3));
         if(TotalRedHeal / 3 >= 1.0) TotalRedHeal += (rand() % (int)(TotalRedHeal / 3));
-        if(RedAirAttack / 5 >= 1.0) TotalRedHeal += (rand() % (int)(RedAirAttack / 5));
+        if(RedAirAttack / 5 >= 1.0) RedAirAttack += (rand() % (int)(RedAirAttack / 5));
+        if(RedRepair / 5 >= 1.0) RedRepair += (rand() % (int)(RedRepair / 5));
         if(TotalBlueAttack / 3 >= 1.0) TotalBlueAttack += (rand() % (int)(TotalBlueAttack / 3));
         if(TotalBlueDefense / 3 >= 1.0) TotalBlueDefense += (rand() % (int)(TotalBlueDefense / 3));
         if(TotalBlueHeal / 3 >= 1.0) TotalBlueHeal += (rand() % (int)(TotalBlueHeal / 3));
-        if(BlueAirAttack / 5 >= 1.0) TotalRedHeal += (rand() % (int)(BlueAirAttack / 5));
+        if(BlueAirAttack / 5 >= 1.0) BlueAirAttack += (rand() % (int)(BlueAirAttack / 5));
+        if(BlueRepair / 5 >= 1.0) BlueRepair += (rand() % (int)(BlueRepair / 5));
         if(RedCommander) {
             TotalRedAttack *= 1.5;
             RedAirAttack *= 1.5;
@@ -472,6 +610,18 @@ void Combat() {
                             TotalRedHeal = 0;
                         }
                     }
+                    else {
+                        float AvalibleHeal = 0;
+                        AvalibleHeal = Troops[i][j].max_health - Troops[i][j].health;
+                        if(RedRepair > AvalibleHeal) {
+                            RedRepair -= AvalibleHeal;
+                            Troops[i][j].health = Troops[i][j].max_health;
+                        }
+                        else {
+                            Troops[i][j].health += AvalibleHeal;
+                            RedRepair = 0;
+                        }
+                    }
                     break;
                 case 'b':
                     if(TotalBlueHeal > 0 && Troops[i][j].type != 'p') {
@@ -484,6 +634,18 @@ void Combat() {
                         else {
                             Troops[i][j].health += AvalibleHeal;
                             TotalBlueHeal = 0;
+                        }
+                    }
+                    else {
+                        float AvalibleHeal = 0;
+                        AvalibleHeal = Troops[i][j].max_health - Troops[i][j].health;
+                        if(BlueRepair > AvalibleHeal) {
+                            BlueRepair -= AvalibleHeal;
+                            Troops[i][j].health = Troops[i][j].max_health;
+                        }
+                        else {
+                            Troops[i][j].health += AvalibleHeal;
+                            BlueRepair = 0;
                         }
                     }
                     break;
@@ -557,9 +719,9 @@ void Combat() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("- Added plane troop\n- Fixed healing\n- How to play screen\nupdated\n- Added air attack\n- Added another\ngameplay tip\n- ?????????", 10, 70, 25, BLACK);
+    DrawText("- Added Buildings\n- Texture and map\nchanges are coming soon\n- Sneak peak 0.9\neaster egg removed\n- bugfixes\nPS: How to play\nand bot will be\nupdated in 0.9.1", 10, 70, 25, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\n\nMade with:\nC++/Raylib", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.8.1", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.9", 10, 360, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -665,6 +827,47 @@ Texture2D DrawSide(char Side, Texture2D Red_Icon, Texture2D Blue_Icon) {
     cout << "ERROR" << endl;
     return Red_Icon;
 }
+Texture2D DrawBuildingIcon(char type, Texture2D Empty_Icon) {
+    switch(type) {
+        case 't':
+            return Trench_Icon;
+        case 'f':
+            return FieldHospital_Icon;
+        case 'a':
+            return AntiAir_Icon;
+        case 'r':
+            return RepairWorkshop_Icon;
+        case 'h':
+            return ArmyHouse_Icon;
+        case 'e':
+            return Empty_Icon;
+        default:
+            break;
+    }
+    return Empty_Icon;
+}
+void DrawBuildingBuyScreen(Texture2D Empty_Icon, Texture2D WarPoint) {
+        DrawTexture(Trench_Icon, MapBorderX - 130, MapBorderY + 10, WHITE);
+        DrawTexture(FieldHospital_Icon, MapBorderX - 130, MapBorderY + 70, WHITE);
+        DrawTexture(AntiAir_Icon, MapBorderX - 130, MapBorderY + 130, WHITE);
+        DrawTexture(RepairWorkshop_Icon, MapBorderX - 130, MapBorderY + 190, WHITE);
+        DrawTexture(ArmyHouse_Icon, MapBorderX - 130, MapBorderY + 250, WHITE);
+        DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 10, WHITE);
+        DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 70, WHITE);
+        DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 130, WHITE);
+        DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 190, WHITE);
+        DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 250, WHITE);
+        DrawText(TextFormat("%d", trench.cost), MapBorderX - 70, MapBorderY + 10, 30, BLACK);
+        DrawText(TextFormat("%d", field_hospital.cost), MapBorderX - 70, MapBorderY + 70, 30, BLACK);
+        DrawText(TextFormat("%d", anti_air.cost), MapBorderX - 70, MapBorderY + 130, 30, BLACK);
+        DrawText(TextFormat("%d", repair_workshop.cost), MapBorderX - 70, MapBorderY + 190, 30, BLACK);
+        DrawText(TextFormat("%d", army_house.cost), MapBorderX - 70, MapBorderY + 250, 30, BLACK);
+        DrawText("T", MapBorderX - 145, MapBorderY + 10, 15, BLACK);
+        DrawText("F", MapBorderX - 145, MapBorderY + 70, 15, BLACK);
+        DrawText("A", MapBorderX - 145, MapBorderY + 130, 15, BLACK);
+        DrawText("R", MapBorderX - 145, MapBorderY + 190, 15, BLACK);
+        DrawText("H", MapBorderX - 145, MapBorderY + 250, 15, BLACK);
+}
 void GetMouseCoords() {
     MouseX = GetMouseX();
     MouseY = GetMouseY();
@@ -675,7 +878,7 @@ void DrawTitleScreen(Texture2D Logo) {
     DrawRectangle(330, 150, 300, 100, GRAY);
     DrawText("Play with a friend", 30, 180, 30, BLACK);
     DrawText("Play with a bot", 350, 180, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.8.1", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.9", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
     DrawRectangle(500, 340, 140, 50, GRAY);
@@ -726,6 +929,31 @@ void TroopBuying(Texture2D Tick) {
         BoughtTroop = 5;
     }
     if(BoughtTroop) DrawTick(Tick, MapBorderX - 130, (BoughtTroop- 1) * 60 + 10);
+    return;
+}
+void BuyBuilding(Texture2D Tick) {
+    TempKey = GetKeyPressed();
+    if(TempKey == KEY_T) {
+        BoughtBuilding = 1;
+        BuiltBuilding = trench;
+    }
+    else if(TempKey == KEY_F) {
+        BoughtBuilding = 2;
+        BuiltBuilding = field_hospital;
+    }
+    else if(TempKey == KEY_A) {
+        BoughtBuilding = 3;
+        BuiltBuilding = anti_air;
+    }
+    else if(TempKey == KEY_R) {
+        BoughtBuilding = 4;
+        BuiltBuilding = repair_workshop;
+    }
+    else if(TempKey == KEY_H) {
+        BoughtBuilding = 5;
+        BuiltBuilding = army_house;
+    }
+    if(BoughtBuilding) DrawTick(Tick, MapBorderX - 130, (BoughtBuilding- 1) * 60 + 10);
     return;
 }
 void DrawTroopBuyScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Artillery_Icon, Texture2D Tank_Icon, Texture2D Plane_Icon) {
@@ -792,6 +1020,11 @@ void ClearTroops() {
     for(int i = 0; i < 10; ++i) {
         RedTroopBank[i] = empty_troop;
         BlueTroopBank[i] = empty_troop;
+    }
+    for(int i = 0; i < 4; ++i) {
+        for(int j = 0; j < 2; ++j) {
+            Buildings[i][j] = empty_building;
+        }
     }
     return;
 }
@@ -1519,6 +1752,78 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
     }
     return;
 }
+void DrawBuildScreen(Image Map, Texture2D Empty_Icon, Texture2D WarPoint, Texture2D Tick) {
+    if(!TileSelected) {
+        ChangeTileSelected(Map, Map.width, Map.height);
+        DrawTileSelected();
+        DrawText("Choose a tile to build", MapBorderX + 10, MapBorderY + Map.height + 10, 30, BLACK);
+    }
+    else {
+        DrawBuildingBuyScreen(Empty_Icon, WarPoint);
+        BuyBuilding(Tick);
+        DrawCheckboxes();
+        Checkbox = ControlCheckboxes();
+        int Slot = 0;
+        if(Checkbox == 1) {
+            IsTileOkay = 0;
+            for(int i = 0; i < 2; ++i) {
+                if(Buildings[TileSelected - 1][i].type == 'e') {
+                    IsTileOkay = 1;
+                    Slot = i;
+                    break;
+                }
+            }
+            if(IsTileOkay) {
+                IsTileOkay = 0;
+                if(Round % 2 == 0) {
+                    for(int i = 0; i < 10; ++i) {
+                        if(Troops[TileSelected - 1][i].side == 'r') {
+                            IsTileOkay = 1;
+                            break;
+                        }
+                    }
+                }
+                else {
+                    for(int i = 0; i < 10; ++i) {
+                        if(Troops[TileSelected - 1][i].side == 'b') {
+                            IsTileOkay = 1;
+                            break;
+                        }
+                    }
+                }
+                if(Round % 2 == 0 && RedWarPoints >= BuiltBuilding.cost && IsTileOkay) {
+                    Buildings[TileSelected - 1][Slot] = BuiltBuilding;
+                    Buildings[TileSelected - 1][Slot].WhoBuiltIt = 'r';
+                    RedWarPoints -= BuiltBuilding.cost;
+                    BoughtBuilding = 0;
+                    TileSelected = 0;
+                    Action = 0;
+                    Round++;
+                }
+                else if(Round % 2 && BlueWarPoints >= BuiltBuilding.cost && IsTileOkay) {
+                    Buildings[TileSelected - 1][Slot] = BuiltBuilding;
+                    Buildings[TileSelected - 1][Slot].WhoBuiltIt = 'b';
+                    BlueWarPoints -= BuiltBuilding.cost;
+                    BoughtBuilding = 0;
+                    TileSelected = 0;
+                    Action = 0;
+                    Round++;
+                }
+                else {
+                    cout << "You don't have any troops on that tile or you don't have enough money" << endl;
+                }
+            }
+            else {
+                cout << "Tile is not okay!" << endl;
+            }
+        }
+        else if(Checkbox == 2) {
+            BoughtBuilding = 0;
+            TileSelected = 0;
+            Action = 0;
+        }
+    }
+}
 void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Tick, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon, Texture2D Plane_Icon) {
     if(Round == 0 || Round == 1) {
         CommanderPlacement(Map, Map_width, Map_height);
@@ -1528,9 +1833,11 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
         DrawRectangle(MapBorderX + 10, MapBorderY + Map_height + 50, 100, 40, GRAY);
         DrawRectangle(MapBorderX + 140, MapBorderY + Map_height + 50, 100, 40, GRAY);
         DrawRectangle(MapBorderX + 270, MapBorderY + Map_height + 50, 100, 40, GRAY);
+        DrawRectangle(MapBorderX - 120, MapBorderY + Map_height + 50, 100, 40, GRAY);
         DrawText("Buy Troop\n/Skip Round", MapBorderX + 15, MapBorderY + Map_height + 55, 15, BLACK);
         DrawText("Move/Place\nTroop", MapBorderX + 145, MapBorderY + Map_height + 55, 15, BLACK);
         DrawText("Delete\nTroop", MapBorderX + 275, MapBorderY + Map_height + 55, 15, BLACK);
+        DrawText("Build\na building", MapBorderX - 115, MapBorderY + Map_height + 55, 15, BLACK);
         DrawText(SelectedTip.c_str(), MapBorderX - 140, MapBorderY + 10, 23, BLACK);
         if(MouseClicked) {
             GetMouseCoords();
@@ -1544,6 +1851,10 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
             }
             else if(MouseX >= MapBorderX + 270 && MouseX <= MapBorderX + 370 && MouseY >= MapBorderY + Map_height + 50 && MouseY <= MapBorderY + Map_height + 90) {
                 Action = 3;
+                SelectedTip = GameplayTips[GetRandomValue(0,1)];
+            }
+            else if(MouseX >= MapBorderX - 120 && MouseX <= MapBorderX - 20 && MouseY >= MapBorderY + Map_height + 50 && MouseY <= MapBorderY + Map_height + 90) {
+                Action = 4;
                 SelectedTip = GameplayTips[GetRandomValue(0,1)];
             }
         }
@@ -1587,6 +1898,9 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
     else if(Action == 3) {
         DrawDeleteTroopsScreen(Map, Infantry_Icon, Medic_Icon, WarPoint, Tick, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
     }
+    else if(Action == 4) {
+        DrawBuildScreen(Map, Empty_Icon, WarPoint, Tick);
+    }
 }
 void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
     for(int i = 0; i < 10; ++i) {
@@ -1627,6 +1941,7 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
                         File >> RedTroopBank[i].attack;
                         File >> RedTroopBank[i].defense;
                         File >> RedTroopBank[i].heal;
+                        File >> RedTroopBank[i].max_health;
                     }
                     for(int i = 0; i < 10; ++i) {
                         File >> BlueTroopBank[i].type;
@@ -1635,6 +1950,7 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
                         File >> BlueTroopBank[i].attack;
                         File >> BlueTroopBank[i].defense;
                         File >> BlueTroopBank[i].heal;
+                        File >> BlueTroopBank[i].max_health;
                     }
                     for(int i = 0; i < 4; ++i) {
                         for(int j = 0; j < 10; ++j) {
@@ -1644,11 +1960,25 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
                             File >> Troops[i][j].attack;
                             File >> Troops[i][j].defense;
                             File >> Troops[i][j].heal;
+                            File >> Troops[i][j].max_health;
                         }
                     }
                     File >> CombatHappened;
                     File >> PlayWithABot;
                     File >> Increased;
+                    for(int i = 0; i < 4; ++i) {
+                        for(int j = 0; j < 2; ++j) {
+                            File >> Buildings[i][j].type;
+                            File >> Buildings[i][j].WhoBuiltIt;
+                            File >> Buildings[i][j].health;
+                            File >> Buildings[i][j].Attack;
+                            File >> Buildings[i][j].Defense;
+                            File >> Buildings[i][j].AirAttack;
+                            File >> Buildings[i][j].Heal;
+                            File >> Buildings[i][j].Repair;
+                            File >> Buildings[i][j].max_health;
+                        }
+                    }
                 }
                 TempKey = 0;
                 SelectedSave = 0;
@@ -1676,7 +2006,7 @@ void BotMove() {
     while(!MoveMade) {
         int Move = GetRandomValue(1,5); // 1: Buy 2: Place 3: Move 4: Delete 5: SkipRound
         if(Round == 1) {
-            int BotCommander = GetRandomValue(1, 5);
+            int BotCommander = GetRandomValue(1, 4);
             if(Troops[BotCommander - 1][0].type == 'e') {
                 Troops[BotCommander - 1][0] = commander;
                 Troops[BotCommander - 1][0].side = 'b';
@@ -1791,7 +2121,7 @@ void BotMove() {
                     }
                 }
             }
-            else if(Move == 3) {
+            else if(Move == 3) { // a bug causes bot troops not to move tile 4
                 int BotFromTile = GetRandomValue(1,4);
                 int BotTroopCount = 0;
                 vector<pair<troop, int>> BotTroops;
@@ -1804,7 +2134,7 @@ void BotMove() {
                     int BotSelected = GetRandomValue(1, BotTroops.size());
                     int BotToTile = GetRandomValue(1, Tiles[BotFromTile - 1].size());
                     for(int i = 0; i < 10; ++i) {
-                        if(Troops[BotToTile - 1][i].side == 'b') {
+                        if(Troops[Tiles[BotFromTile - 1][BotToTile - 1]][i].side == 'b') {
                             BotTroopCount++;
                         }
                     }
@@ -1820,7 +2150,7 @@ void BotMove() {
                     }
                 }
             }
-            else if(Move == 4) {
+            else if(Move == 4) { //EMERGENCY BUGFIX NEEDED
                 int BotTile = GetRandomValue(1, 4);
                 vector<pair<troop,int>> BotTroops;
                 for(int i = 0; i < 10; ++i) {
@@ -1886,7 +2216,7 @@ void BotMove() {
     Round++;
     return;
 }
-void DrawTroops( Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon, Texture2D Plane_Icon) { // bu fonksiyonu şimdilik elimle koordinat girerek yaptım sonra dosyadan orta noktaları çeken bir sistem haline getireceğim.
+void DrawTroops(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon, Texture2D Plane_Icon) { // bu fonksiyonu şimdilik elimle koordinat girerek yaptım sonra dosyadan orta noktaları çeken bir sistem haline getireceğim.
     for(int i = 0; i < 10; ++i) {
         TempDraw = DrawTroopIcon(Troops[3][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon, Plane_Icon);
         Health = DrawTroopHealth(Troops[3][i].health, Troops[3][i].type, Low_health, Medium_health, High_health, Full_health);
@@ -1897,6 +2227,10 @@ void DrawTroops( Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
             DrawTextureEx(Health, {(float)(i % 5) * 25 + 204, (float)(i / 5) * 25 + 55}, 0, 0.4, WHITE);
             DrawTextureEx(RedBlue, {(float)(i % 5) * 25 + 203, (float)(i / 5) * 25 + 38}, 0, 0.4, WHITE);
         }
+    }
+    for(int i = 0; i < 2; ++i) {
+        TempDraw = DrawBuildingIcon(Buildings[3][i].type, Empty_Icon);
+        DrawTextureEx(TempDraw, {(float)i * 25 + 203, 93 - 5}, 0, 0.4, WHITE);
     }
     for(int i = 0; i < 10; ++i) {
         TempDraw = DrawTroopIcon(Troops[0][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon, Plane_Icon);
@@ -1909,6 +2243,10 @@ void DrawTroops( Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
             DrawTextureEx(RedBlue, {(float)(i % 5) * 25 + 186, (float)(i / 5) * 25 + 194}, 0, 0.4, WHITE);
         }
     }
+    for(int i = 0; i < 2; ++i) {
+        TempDraw = DrawBuildingIcon(Buildings[0][i].type, Empty_Icon);
+        DrawTextureEx(TempDraw, {(float)i * 25 + 186, 249 - 5}, 0, 0.4, WHITE);
+    }
     for(int i = 0; i < 10; ++i) {
         TempDraw = DrawTroopIcon(Troops[1][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon, Plane_Icon);
         Health = DrawTroopHealth(Troops[1][i].health, Troops[1][i].type, Low_health, Medium_health, High_health, Full_health);
@@ -1920,6 +2258,10 @@ void DrawTroops( Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
             DrawTextureEx(RedBlue, {(float)(i % 5) * 25 + 464, (float)(i / 5) * 25 + 197}, 0, 0.4, WHITE);
         }
     }
+    for(int i = 0; i < 2; ++i) {
+        TempDraw = DrawBuildingIcon(Buildings[1][i].type, Empty_Icon);
+        DrawTextureEx(TempDraw, {(float)i * 25 + 464, 252 - 5}, 0, 0.4, WHITE);
+    }
     for(int i = 0; i < 10; ++i) {
         TempDraw = DrawTroopIcon(Troops[2][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon, Plane_Icon);
         Health = DrawTroopHealth(Troops[2][i].health, Troops[2][i].type, Low_health, Medium_health, High_health, Full_health);
@@ -1930,6 +2272,10 @@ void DrawTroops( Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
             DrawTextureEx(Health, {(float)(i % 5) * 25 + 441, (float)(i / 5) * 25 + 61}, 0, 0.4, WHITE);
             DrawTextureEx(RedBlue, {(float)(i % 5) * 25 + 440, (float)(i / 5) * 25 + 44}, 0, 0.4, WHITE);
         }
+    }
+    for(int i = 0; i < 2; ++i) {
+        TempDraw = DrawBuildingIcon(Buildings[2][i].type, Empty_Icon);
+        DrawTextureEx(TempDraw, {(float)i * 25 + 440, 99 - 5}, 0, 0.4, WHITE);
     }
 }
 
@@ -1960,6 +2306,11 @@ int main() {
     Image Tank_png = LoadImage("resources/Tank.png");
     Image Show_png = LoadImage("resources/map_show.png");
     Image Plane_png = LoadImage("resources/Plane.png");
+    Trench_png = LoadImage("resources/Trench.png");
+    Field_png = LoadImage("resources/Field_Hospital.png");
+    Anti_png = LoadImage("resources/Anti_Air.png");
+    Repair_png = LoadImage("resources/Repair_Workshop.png");
+    Army_png = LoadImage("resources/Army_House.png");
     Texture2D Tick = LoadTextureFromImage(Tick_png);
     Texture2D Infantry_Icon = LoadTextureFromImage(Infantry_png);
     Texture2D Medic_Icon = LoadTextureFromImage(Medic_png);
@@ -1982,6 +2333,11 @@ int main() {
     Texture2D Tank_Icon = LoadTextureFromImage(Tank_png);
     Texture2D Show_Map = LoadTextureFromImage(Show_png);
     Texture2D Plane_Icon = LoadTextureFromImage(Plane_png);
+    Trench_Icon = LoadTextureFromImage(Trench_png);
+    FieldHospital_Icon = LoadTextureFromImage(Field_png);
+    AntiAir_Icon = LoadTextureFromImage(Anti_png);
+    RepairWorkshop_Icon = LoadTextureFromImage(Repair_png);
+    ArmyHouse_Icon = LoadTextureFromImage(Army_png);
     Terrain[0] = "forest";
     Terrain[1] = "plains";
     Terrain[2] = "city";
@@ -2148,6 +2504,11 @@ int main() {
     UnloadImage(Tank_png);
     UnloadImage(Show_png);
     UnloadImage(Plane_png);
+    UnloadImage(Trench_png);
+    UnloadImage(Field_png);
+    UnloadImage(Anti_png);
+    UnloadImage(Repair_png);
+    UnloadImage(Army_png);
     UnloadTexture(Map);
     UnloadTexture(Infantry_Icon);
     UnloadTexture(Medic_Icon);
@@ -2170,6 +2531,13 @@ int main() {
     UnloadTexture(Tank_Icon);
     UnloadTexture(Show_Map);
     UnloadTexture(Plane_Icon);
+    UnloadTexture(Trench_Icon);
+    UnloadTexture(FieldHospital_Icon);
+    UnloadTexture(AntiAir_Icon);
+    UnloadTexture(RepairWorkshop_Icon);
+    UnloadTexture(ArmyHouse_Icon);
     CloseWindow();
     return 0;
 }
+
+// NERF WARPOINT INCREASE RATE TOO OP!!!!!!!!!!!!

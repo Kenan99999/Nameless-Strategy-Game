@@ -97,9 +97,9 @@ building trench{
     't',
     'e',
     5,
-    0,
-    5,
-    0,
+    1,
+    1.3,
+    1,
     0,
     0,
     5,
@@ -109,9 +109,9 @@ building empty_building{
     'e',
     'e',
     0,
-    0,
-    0,
-    0,
+    1,
+    1,
+    1,
     0,
     0,
     0,
@@ -121,9 +121,9 @@ building field_hospital {
     'f',
     'e',
     5,
-    0,
-    0,
-    0,
+    1,
+    1,
+    1,
     5,
     0,
     5,
@@ -133,9 +133,9 @@ building anti_air {
     'a',
     'e',
     5,
-    0,
-    0,
-    5,
+    1,
+    1,
+    1.3,
     0,
     0,
     5,
@@ -145,9 +145,9 @@ building repair_workshop {
     'r',
     'e',
     10,
-    0,
-    0,
-    0,
+    1,
+    1,
+    1,
     0,
     5,
     10,
@@ -157,9 +157,9 @@ building army_house {
     'h',
     'e',
     10,
-    5,
-    0,
-    0,
+    1.3,
+    1,
+    1,
     0,
     0,
     10,
@@ -397,6 +397,7 @@ void GameSave() {
                     File << Buildings[i][j].Heal << endl;
                     File << Buildings[i][j].Repair << endl;
                     File << Buildings[i][j].max_health << endl;
+                    File << Buildings[i][j].cost << endl;
                 }
             }
         }
@@ -535,19 +536,21 @@ void Combat() {
             }
         }
         for(int j = 0; j < 2; ++j) {
-            if(Buildings[i][j].type != 'e' && (RedBuilding > BlueBuilding || RedBuilding == BlueBuilding && Buildings[i][j].WhoBuiltIt == 'r')) {
-                TotalRedAttack += Buildings[i][j].Attack;
-                TotalRedDefense += Buildings[i][j].Defense;
+            if(Buildings[i][j].type != 'e' && (RedBuilding > BlueBuilding || (RedBuilding == BlueBuilding && Buildings[i][j].WhoBuiltIt == 'r')) && RedBuilding) {
+                TotalRedAttack *= Buildings[i][j].Attack;
+                TotalRedDefense *= Buildings[i][j].Defense;
                 TotalRedHeal += Buildings[i][j].Heal;
-                RedAirAttack += Buildings[i][j].AirAttack;
+                RedAirAttack *= Buildings[i][j].AirAttack;
                 RedRepair += Buildings[i][j].Repair;
+                cout << "red" << endl;
             }
-            if(Buildings[i][j].type != 'e' && (RedBuilding < BlueBuilding || RedBuilding == BlueBuilding && Buildings[i][j].WhoBuiltIt == 'b')) {
-                TotalBlueAttack += Buildings[i][j].Attack;
-                TotalBlueDefense += Buildings[i][j].Defense;
+            if(Buildings[i][j].type != 'e' && (RedBuilding < BlueBuilding || (RedBuilding == BlueBuilding && Buildings[i][j].WhoBuiltIt == 'b')) && BlueBuilding) {
+                TotalBlueAttack *= Buildings[i][j].Attack;
+                TotalBlueDefense *= Buildings[i][j].Defense;
                 TotalBlueHeal += Buildings[i][j].Heal;
-                BlueAirAttack += Buildings[i][j].AirAttack;
+                BlueAirAttack *= Buildings[i][j].AirAttack;
                 BlueRepair += Buildings[i][j].Repair;
+                cout << "blue" << endl;
             }
         }
         if(TotalRedAttack / 3 >= 1.0) TotalRedAttack += (rand() % (int)(TotalRedAttack / 3));
@@ -589,10 +592,10 @@ void Combat() {
         if(TotalBlueAttack > TotalRedDefense)  TakenRedDamage = TotalBlueAttack - TotalRedDefense;
         if(TotalRedAttack > TotalBlueDefense) TakenBlueDamage = TotalRedAttack - TotalBlueDefense;
         if(!TakenBlueDamage && RedTroopCount) {
-            TakenBlueDamage = 1;
+            TakenBlueDamage = 0.1;
         }
         if(!TakenRedDamage && BlueTroopCount) {
-            TakenRedDamage = 1;
+            TakenRedDamage = 0.1;
         }
         cout << TakenRedDamage << " " << TakenBlueDamage << "tile: " << i + 1 << endl;
         for(int j = 0; j < 10; ++j) {
@@ -601,6 +604,7 @@ void Combat() {
                     if(TotalRedHeal > 0 && Troops[i][j].type != 'p') {
                         float AvalibleHeal = 0;
                         AvalibleHeal = Troops[i][j].max_health - Troops[i][j].health;
+                        cout << TotalRedHeal << endl;
                         if(TotalRedHeal > AvalibleHeal) {
                             TotalRedHeal -= AvalibleHeal;
                             Troops[i][j].health = Troops[i][j].max_health;
@@ -610,7 +614,7 @@ void Combat() {
                             TotalRedHeal = 0;
                         }
                     }
-                    else {
+                    else if(RedRepair > 0) {
                         float AvalibleHeal = 0;
                         AvalibleHeal = Troops[i][j].max_health - Troops[i][j].health;
                         if(RedRepair > AvalibleHeal) {
@@ -636,7 +640,7 @@ void Combat() {
                             TotalBlueHeal = 0;
                         }
                     }
-                    else {
+                    else if(BlueRepair > 0) {
                         float AvalibleHeal = 0;
                         AvalibleHeal = Troops[i][j].max_health - Troops[i][j].health;
                         if(BlueRepair > AvalibleHeal) {
@@ -719,9 +723,9 @@ void Combat() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("- Added Buildings\n- Texture and map\nchanges are coming soon\n- Sneak peak 0.9\neaster egg removed\n- bugfixes\nPS: How to play\nand bot will be\nupdated in 0.9.1", 10, 70, 25, BLACK);
-    DrawText("Main Developer:\nKenan Mert Pamuk\n\nMade with:\nC++/Raylib", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.9", 10, 360, 30, BLACK);
+    DrawText("0.9:\n- Added Buildings\n- Texture and map\nchanges are coming soon\n- bugfixes\nPS: How to play\nand bot will be\nupdated in 0.9.1\n0.9.0.1:\n- Balance changes\nand bugfixes", 10, 70, 25, BLACK);
+    DrawText("Main Developer:\nKenan Mert Pamuk\nTextures:\nÖmer Kaymak\n\nMade with:\nC++/Raylib", 360, 70, 25, BLACK);
+    DrawText("Version: Pre-alpha 0.9.0.1", 10, 360, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -878,7 +882,7 @@ void DrawTitleScreen(Texture2D Logo) {
     DrawRectangle(330, 150, 300, 100, GRAY);
     DrawText("Play with a friend", 30, 180, 30, BLACK);
     DrawText("Play with a bot", 350, 180, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.9", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.9.0.1", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
     DrawRectangle(500, 340, 140, 50, GRAY);
@@ -1481,6 +1485,10 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                 DrawCheckboxes();
                 Checkbox = ControlCheckboxes();
             }
+            for(int i = 0; i < 2; ++i) {
+                TempDraw = DrawBuildingIcon(Buildings[FromTileSelected - 1][i].type, Empty_Icon);
+                DrawTexture(TempDraw, MapBorderX + 10 + i * 60, MapBorderY + Map.height + 10, WHITE);
+            }
         }
         else {
             if(Round % 2 == 0) {
@@ -1798,6 +1806,7 @@ void DrawBuildScreen(Image Map, Texture2D Empty_Icon, Texture2D WarPoint, Textur
                     BoughtBuilding = 0;
                     TileSelected = 0;
                     Action = 0;
+                    IsTileOkay = 1;
                     Round++;
                 }
                 else if(Round % 2 && BlueWarPoints >= BuiltBuilding.cost && IsTileOkay) {
@@ -1807,6 +1816,7 @@ void DrawBuildScreen(Image Map, Texture2D Empty_Icon, Texture2D WarPoint, Textur
                     BoughtBuilding = 0;
                     TileSelected = 0;
                     Action = 0;
+                    IsTileOkay = 1;
                     Round++;
                 }
                 else {
@@ -1821,6 +1831,7 @@ void DrawBuildScreen(Image Map, Texture2D Empty_Icon, Texture2D WarPoint, Textur
             BoughtBuilding = 0;
             TileSelected = 0;
             Action = 0;
+            IsTileOkay = 1;
         }
     }
 }
@@ -1977,6 +1988,7 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
                             File >> Buildings[i][j].Heal;
                             File >> Buildings[i][j].Repair;
                             File >> Buildings[i][j].max_health;
+                            File >> Buildings[i][j].cost;
                         }
                     }
                 }
@@ -2462,7 +2474,8 @@ int main() {
             }
             else if(!RedCommanderAvalible && BlueCommanderAvalible && Round < 999) {
                 ClearBackground(BLUE);
-                DrawText("BLUE WON!", 50, 100, 100, BLACK);
+                if(!PlayWithABot) DrawText("BLUE WON!", 50, 100, 100, BLACK);
+                else DrawText("BOT WON!", 50, 100, 100, BLACK);
                 DrawText("Click anywhere to restart", 10, 350, 25, BLACK);
                 if(MouseClicked) {
                     Restarted = 1;

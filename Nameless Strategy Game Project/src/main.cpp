@@ -227,6 +227,7 @@ building BuiltBuilding;
 Texture2D TempDraw;
 Texture2D RedBlue;
 Texture2D Health;
+Camera2D GameCamera = { 0 };
 const int Infantry_Cost = 5;
 const int Medic_Cost = 10;
 const int Artillery_Cost = 20;
@@ -723,9 +724,9 @@ void Combat() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("0.9:\n- Added Buildings\n- Texture and map\nchanges are coming soon\n- bugfixes\nPS: How to play\nand bot will be\nupdated in 0.9.1\n0.9.0.1:\n- Balance changes\nand bugfixes", 10, 70, 25, BLACK);
+    DrawText("0.9:\n- Added Buildings\n- Texture and map\nchanges are coming soon\n- bugfixes\n0.9.0.1:\n- Balance changes\nand bugfixes\n0.9.0.2:\n- Added camera", 10, 70, 25, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\nTextures:\nÖmer Kaymak\n\nMade with:\nC++/Raylib", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.9.0.1", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.9.0.2", 10, 360, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -882,7 +883,7 @@ void DrawTitleScreen(Texture2D Logo) {
     DrawRectangle(330, 150, 300, 100, GRAY);
     DrawText("Play with a friend", 30, 180, 30, BLACK);
     DrawText("Play with a bot", 350, 180, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.9.0.1", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.9.0.2", 10, 360, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
     DrawRectangle(500, 340, 140, 50, GRAY);
@@ -2359,12 +2360,39 @@ int main() {
     SelectedTip = GameplayTips[GetRandomValue(0,1)];
     SetTargetFPS(60);
     restart:
+    GameCamera.target = {MapBorderX, MapBorderY};
+    GameCamera.offset = {MapBorderX, MapBorderY};
+    GameCamera.rotation = 0.0f;
+    GameCamera.zoom = 1.0f;
     restart();
     ClearTroops();
     Saves();
     SelectedTroop.type = 'n';
     MovingTroop.type = 'n';
     while(IsKeyPressed(KEY_ESCAPE) || !WindowShouldClose()) { // Main Game Loop
+        float MouseWheel = GetMouseWheelMove();
+        if(MouseWheel != 0) {
+            GameCamera.zoom += MouseWheel * 0.1f;
+            if(GameCamera.zoom < 1.0) GameCamera.zoom = 1.0;
+            if(GameCamera.zoom > 3.0) GameCamera.zoom = 3.0;
+        }
+        if(IsMouseButtonDown(MOUSE_BUTTON_MIDDLE)) {
+            Vector2 MouseDifferance = GetMouseDelta();
+
+            GameCamera.target.x -= MouseDifferance.x / GameCamera.zoom;
+            GameCamera.target.y -= MouseDifferance.y / GameCamera.zoom;
+        }
+        float ShowingWidth = Map.width / GameCamera.zoom;
+        float ShowingHeight = Map.height / GameCamera.zoom;
+
+        float MaxX = MapBorderX + Map.width - ShowingWidth;
+        float MinX = MapBorderX;
+        float MaxY = MapBorderY + Map.height - ShowingHeight;
+        float MinY = MapBorderY;
+        if (GameCamera.target.x < MinX) GameCamera.target.x = MinX;
+        if (GameCamera.target.x > MaxX) GameCamera.target.x = MaxX;
+        if (GameCamera.target.y < MinY) GameCamera.target.y = MinY;
+        if (GameCamera.target.y > MaxY) GameCamera.target.y = MaxY;
         if(LastRound != Round) {
             CombatHappened = 0;
             LastRound = Round;
@@ -2378,6 +2406,11 @@ int main() {
 
         if(MouseClicked && GetTime() > 4) { // Mouse Controls
             GetMouseCoords();
+            if(GameStarted && MouseX >= MapBorderX && MouseX <= MapBorderX + Map.width && MouseY >= MapBorderY && MouseY <= MapBorderY + Map.height) {
+                Vector2 MouseCoords = GetScreenToWorld2D(GetMousePosition(), GameCamera);
+                MouseX = MouseCoords.x;
+                MouseY = MouseCoords.y;
+            }
             cout << MouseX << " " << MouseY << endl;
             if(!GameStarted && MouseX >= 500 && MouseX <= 640 && MouseY >= 340 && MouseY <= 390 && !CreditScreen && !Restarted && !HowToPlayScreen) {
                 CreditScreen = 1;
@@ -2422,15 +2455,19 @@ int main() {
                 }
                 ClearBackground(WHITE);
                 if(IncreaseControl && !Increased) IncreaseWarPoints();
+                BeginMode2D(GameCamera);
                 DrawTexture(Map, MapBorderX, MapBorderY, WHITE); // Draw map
                 DrawTexture(Show_Map, MapBorderX, MapBorderY, WHITE);
+                DrawTroops(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
+                EndMode2D();
+                DrawRectangle(0,0,150,400,WHITE);
+                DrawRectangle(0,Map.height,650,100,WHITE);
                 DrawActions(Map_png, Map.width, Map.height, Infantry_Icon, Medic_Icon, WarPoint, Tick, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
                 DrawTurn(Map.width, Map.height, WarPoint);
                 DrawRound(Map.width, Map.height);
                 DrawTexture(Restart, 628, 378, WHITE);
                 DrawTexture(Save, 628, 356, WHITE);
                 DrawTexture(Load, 628, 334, WHITE);
-                DrawTroops(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
                 if(MouseX >= 628 && MouseX <= 648 && MouseY >= 378 && MouseY <= 398) {
                     Restarted = 1;
                     goto restart;

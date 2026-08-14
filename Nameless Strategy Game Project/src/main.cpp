@@ -1,6 +1,5 @@
 #include <raylib.h>
 #include <bits/stdc++.h>
-#include <filesystem>
 struct troop {
     char type;
     char side;
@@ -211,6 +210,8 @@ bool SaveScreen = 0;
 bool LoadScreen = 0;
 bool HowToPlayScreen = 0;
 bool PlayWithABot = 0;
+bool CloseTheWindow = 0;
+bool SettingsScreen = 0;
 int Restarted = 0;
 int LastRound = 0;
 int LastClickedX = 0;
@@ -243,12 +244,13 @@ vector<vector<int>> Tiles(4);
 vector<string> Terrain(4);
 vector<string> GameplayTips(2);
 string SelectedTip;
-const int screenWidth = 650;
-const int screenHeight = 400;
+const int screenWidth = 1920;
+const int screenHeight = 1080;
 
-const int MapBorderX = 150;
+const int MapBorderX = 400;
 const int MapBorderY = 0;
 
+const int TileSelector = 0; //TileSelector
 Image Trench_png;
 Image Field_png;
 Image Anti_png;
@@ -261,7 +263,15 @@ Texture2D RepairWorkshop_Icon;
 Texture2D ArmyHouse_Icon;
 // Functions
 
-
+void DrawSettingsScreen(Texture2D Restart_Icon, Texture2D Save_Icon, Texture2D Load_Icon) {
+    ClearBackground(WHITE);
+    DrawRectangle(800, 600, 320, 100, GRAY);
+    DrawText("Close the game", 810, 610, 35, BLACK);
+    DrawText("Press Esc to return to the game", 600, 10, 60, BLACK);
+    DrawTexture(Restart_Icon, 800, 490, WHITE);
+    DrawTexture(Save_Icon, 910, 490, WHITE);
+    DrawTexture(Load_Icon, 1020, 490, WHITE);
+}
 void DrawHowToPlayScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Artillery_Icon, Texture2D Tank_Icon, Texture2D Plane_Icon) {
     DrawText(TextFormat("Page %d/2", Page + 1), 295, 380, 18, BLACK);
     // Comments were an old easter egg in version Pre-alpha 0.8.1
@@ -487,6 +497,7 @@ void restart() {
     Action = 0;
     SaveScreen = 0;
     LoadScreen = 0;
+    SettingsScreen = 0;
     SelectedSave = 0;
     PlayWithABot = 0;
     Page = 0;
@@ -724,9 +735,9 @@ void Combat() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:", 10, 10, 30, BLACK);
     DrawText("Credits:", 360, 10, 30, BLACK);
-    DrawText("0.9:\n- Added Buildings\n- Texture and map\nchanges are coming soon\n- bugfixes\n0.9.0.1:\n- Balance changes\nand bugfixes\n0.9.0.2:\n- Added camera", 10, 70, 25, BLACK);
+    DrawText("- Working on UI and Map changes", 10, 70, 25, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\nTextures:\nÖmer Kaymak\n\nMade with:\nC++/Raylib", 360, 70, 25, BLACK);
-    DrawText("Version: Pre-alpha 0.9.0.2", 10, 360, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.10.-1 (not finished version of 0.10)", 10, 360, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -879,20 +890,20 @@ void GetMouseCoords() {
     return;
 }
 void DrawTitleScreen(Texture2D Logo) {
-    DrawRectangle(10, 150, 300, 100, GRAY);
-    DrawRectangle(330, 150, 300, 100, GRAY);
-    DrawText("Play with a friend", 30, 180, 30, BLACK);
-    DrawText("Play with a bot", 350, 180, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.9.0.2", 10, 360, 30, BLACK);
+    DrawRectangle(200, 400, 600, 200, GRAY);
+    DrawRectangle(1000, 400, 600, 200, GRAY);
+    DrawText("Play with a friend", 250, 450, 50, BLACK);
+    DrawText("Play with a bot", 1050, 450, 50, BLACK);
+    DrawText("Version: Pre-alpha 0.10.-1 (not finished version of 0.10)", 10, 1000, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
-    DrawText("NAMELESS\nGAME", 150, 10, 65, BLACK);
-    DrawRectangle(500, 340, 140, 50, GRAY);
-    DrawText("Changelog\nand Credits", 505, 345, 20, BLACK);
-    DrawRectangle(500, 280, 140, 50, GRAY);
-    DrawText("How to play", 505, 300, 20, BLACK);
+    DrawText("NAMELESS GAME", 800, 10, 65, BLACK);
+    DrawRectangle(1600, 800, 300, 120, GRAY);
+    DrawText("Changelog and\nCredits", 1610, 810, 35, BLACK);
+    DrawRectangle(1600, 940, 300, 120, GRAY);
+    DrawText("How to play", 1610, 950, 35, BLACK);
 }
 void DrawLogoScreen(Texture2D Logo) {
-    DrawTextureEx(Logo, {150, 10}, 0.0f, 7.0f, WHITE);
+    DrawTextureEx(Logo, {460, 10}, 0.0f, 20.0f, WHITE);
 }
 void DrawTick(Texture2D Tick, int x, int y) {
     DrawTexture(Tick, x, y, WHITE);
@@ -933,7 +944,7 @@ void TroopBuying(Texture2D Tick) {
     else if(TempKey == KEY_P) {
         BoughtTroop = 5;
     }
-    if(BoughtTroop) DrawTick(Tick, MapBorderX - 130, (BoughtTroop- 1) * 60 + 10);
+    if(BoughtTroop) DrawTick(Tick, 10, (BoughtTroop - 1) * 110 + 10);
     return;
 }
 void BuyBuilding(Texture2D Tick) {
@@ -962,27 +973,27 @@ void BuyBuilding(Texture2D Tick) {
     return;
 }
 void DrawTroopBuyScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Artillery_Icon, Texture2D Tank_Icon, Texture2D Plane_Icon) {
-    DrawTexture(Infantry_Icon, MapBorderX - 130, MapBorderY + 10, WHITE);
-    DrawTexture(Medic_Icon, MapBorderX - 130, MapBorderY + 70, WHITE);
-    DrawTexture(Artillery_Icon, MapBorderX - 130, MapBorderY + 130, WHITE);
-    DrawTexture(Tank_Icon, MapBorderX - 130, MapBorderY + 190, WHITE);
-    DrawTexture(Plane_Icon, MapBorderX - 130, MapBorderY + 250, WHITE);
-    DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 10, WHITE);
-    DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 70, WHITE);
-    DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 130, WHITE);
-    DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 190, WHITE);
-    DrawTexture(WarPoint, MapBorderX - 30, MapBorderY + 250, WHITE);
-    DrawText(TextFormat("%d", Infantry_Cost), MapBorderX - 70, MapBorderY + 10, 30, BLACK);
-    DrawText(TextFormat("%d", Medic_Cost), MapBorderX - 70, MapBorderY + 70, 30, BLACK);
-    DrawText(TextFormat("%d", Artillery_Cost), MapBorderX - 70, MapBorderY + 130, 30, BLACK);
-    DrawText(TextFormat("%d", Tank_Cost), MapBorderX - 70, MapBorderY + 190, 30, BLACK);
-    DrawText(TextFormat("%d", Plane_Cost), MapBorderX - 70, MapBorderY + 250, 30, BLACK);
-    DrawText("I", MapBorderX - 145, MapBorderY + 10, 15, BLACK);
-    DrawText("M", MapBorderX - 145, MapBorderY + 70, 15, BLACK);
-    DrawText("A", MapBorderX - 145, MapBorderY + 130, 15, BLACK);
-    DrawText("T", MapBorderX - 145, MapBorderY + 190, 15, BLACK);
-    DrawText("P", MapBorderX - 145, MapBorderY + 250, 15, BLACK);
-    DrawText("To skip don't buy\nanything and confirm.", MapBorderX, MapBorderY + 310, 35, BLACK);
+    DrawTexture(Infantry_Icon, 10, 10, WHITE);
+    DrawTexture(Medic_Icon, 10, 120, WHITE);
+    DrawTexture(Artillery_Icon, 10, 230, WHITE);
+    DrawTexture(Tank_Icon, 10, 340, WHITE);
+    DrawTexture(Plane_Icon, 10, 450, WHITE);
+    DrawTextureEx(WarPoint, {180, 10}, 0.0f, 0.5f, WHITE);
+    DrawTextureEx(WarPoint, {180, 120}, 0.0f, 0.5f, WHITE);
+    DrawTextureEx(WarPoint, {180, 230}, 0.0f, 0.5f, WHITE);
+    DrawTextureEx(WarPoint, {180, 340}, 0.0f, 0.5f, WHITE);
+    DrawTextureEx(WarPoint, {180, 450}, 0.0f, 0.5f, WHITE);
+    DrawText(TextFormat("%d", Infantry_Cost), 120, 10, 50, BLACK);
+    DrawText(TextFormat("%d", Medic_Cost), 120, 120, 50, BLACK);
+    DrawText(TextFormat("%d", Artillery_Cost), 120, 230, 50, BLACK);
+    DrawText(TextFormat("%d", Tank_Cost), 120, 340, 50, BLACK);
+    DrawText(TextFormat("%d", Plane_Cost), 120, 450, 50, BLACK);
+    DrawText("I", 15, 15, 25, BLACK);
+    DrawText("M", 15, 125, 25, BLACK);
+    DrawText("A", 15, 235, 25, BLACK);
+    DrawText("T", 15, 345, 25, BLACK);
+    DrawText("P", 15, 455, 25, BLACK);
+    DrawText("To skip don't buy\nanything and confirm.", 10, 500, 35, BLACK);
     return;
 }
 int ControlCheckboxes() { // Yes or No
@@ -997,10 +1008,10 @@ int ControlCheckboxes() { // Yes or No
     }
 }
 void DrawCheckboxes() {
-    DrawRectangle(10, 350, 40, 40, GREEN);
-    DrawRectangle(60, 350, 40, 40, RED);
-    DrawText("Q", 15, 353, 40, BLACK);
-    DrawText("E", 65, 353, 40, BLACK);
+    DrawRectangle(10, 990, 80, 80, GREEN);
+    DrawRectangle(100, 990, 80, 80, RED);
+    DrawText("Q", 15, 993, 80, BLACK);
+    DrawText("E", 105, 993, 80, BLACK);
     return;
 }
 void CreateMapBonds() {
@@ -1033,16 +1044,16 @@ void ClearTroops() {
     }
     return;
 }
-void DrawTurn(int Map_width, int Map_height, Texture2D WarPoint) {
+void DrawTurn(Texture2D WarPoint) {
     if(Round % 2 == 0) {
-        DrawText("Red's\nturn", MapBorderX + Map_width - 100, MapBorderY + Map_height + 10, 25, RED);
-        DrawText(TextFormat("%d", RedWarPoints), MapBorderX + Map_width - 100, MapBorderY + Map_height + 60, 30, RED);
-        DrawTexture(WarPoint, MapBorderX + Map_width - 60, MapBorderY + Map_height + 60, WHITE);
+        DrawText("Red", 300, 970, 40, RED);
+        DrawText(TextFormat("%d", RedWarPoints), 290, 1015, 50, RED);
+        DrawTextureEx(WarPoint, {335, 1015}, 0.0f, 0.6f, WHITE);
     }
     else {
-        DrawText("Blue's\nturn", MapBorderX + Map_width - 100, MapBorderY + Map_height + 10, 25, BLUE);
-        DrawText(TextFormat("%d", BlueWarPoints), MapBorderX + Map_width - 100, MapBorderY + Map_height + 60, 30, BLUE);
-        DrawTexture(WarPoint, MapBorderX + Map_width - 60, MapBorderY + Map_height + 60, WHITE);
+        DrawText("Blue", 300, 970, 40, BLUE);
+        DrawText(TextFormat("%d", BlueWarPoints), 290, 1015, 50, BLUE);
+        DrawTextureEx(WarPoint, {335, 1015}, 0.0f, 0.6f, WHITE);
     }
     return;
 }
@@ -1234,18 +1245,18 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
     int BlueTroopCount = 0;
     if(Round % 2 == 0) {
         if(!TroopChosen) {
-            DrawText("Select a troop from\nyour troop bank to place", MapBorderX + 10, MapBorderY + 310, 25, BLACK);
+            DrawText("Select a troop from\nyour troop bank to place", 10, 600, 29, BLACK);
             for(int i = 0; i < 10; ++i) {
                 TempDraw = DrawTroopIcon(RedTroopBank[i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon, Plane_Icon);
-                DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
-                DrawText(TextFormat("%d", i), MapBorderX - (((i + 1) % 2) * 60 + 84), (i / 2) * 60 + 10, 15, BLACK);
+                DrawTexture(TempDraw, (i % 2) * 110 + 10, (i / 2) * 110 + 10, WHITE);
+                DrawText(TextFormat("%d", i), (i % 2) * 110 + 90, (i / 2) * 110 + 14, 25, BLACK);
             }
             TempKey = GetKeyPressed() - 47;
             if(TempKey >= 1 && TempKey <= 10) {
                 Key = TempKey;
             }
             if(Key > 0) {
-                DrawTexture(Tick, MapBorderX - (((Key) % 2) * 60 + 75), ((Key - 1) / 2) * 60 + 10, WHITE);
+                DrawTexture(Tick, ((Key - 1) % 2) * 110 + 10, ((Key - 1) / 2) * 110 + 10, WHITE);
                 SelectedTroop = RedTroopBank[Key - 1];
             }
         }
@@ -1448,21 +1459,17 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
         if(!TroopChosen) {
             for(int i = 0; i < 10; ++i) {
                 TempDraw = DrawTroopIcon(Troops[FromTileSelected - 1][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon, Plane_Icon);
-                DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
+                DrawTexture(TempDraw, ((i % 2) * 110 + 10), (i / 2) * 110 + 10, WHITE);
                 if(Troops[FromTileSelected - 1][i].type != 'e') { 
                     RedBlue = DrawSide(Troops[FromTileSelected - 1][i].side, Red_Icon, Blue_Icon);
-                    DrawTexture(RedBlue, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
+                    DrawTextureEx(RedBlue, {(float)(i % 2) * 110 + 10, (float)(i / 2) * 110 + 10}, 0.0f, 2.0f, WHITE);
                     Health = DrawTroopHealth(Troops[FromTileSelected - 1][i].health, Troops[FromTileSelected - 1][i].type, Low_health, Medium_health, High_health, Full_health);
-                    DrawTexture(Health, MapBorderX - (((i + 1) % 2) * 60 + 73), (i / 2) * 60 + 51, WHITE);
+                    DrawTexture(Health, ((i % 2) * 110 + 14), (i / 2) * 110 + 92, WHITE);
                 }
-                DrawText(TextFormat("%d", i), MapBorderX - (((i + 1) % 2) * 60 + 84), (i / 2) * 60 + 10, 15, BLACK);
+                DrawText(TextFormat("%d", i), ((i % 2) * 110 + 90), (i / 2) * 110 + 14, 25, BLACK);
                 TempKey = GetKeyPressed() - 47;
                 if(TempKey >= 1 && TempKey <= 10) {
                     Key = TempKey;
-                }
-                if(Key > 0 && Key < 11) {
-                    DrawTexture(Tick, MapBorderX - (((Key) % 2) * 60 + 75), ((Key - 1) / 2) * 60 + 10, WHITE);
-                    MovingTroop = Troops[FromTileSelected - 1][Key - 1];
                 }
                 if(Checkbox == 1 && !(MovingTroop.type == 'n')) {
                     TroopChosen = 1;
@@ -1485,6 +1492,10 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                 }
                 DrawCheckboxes();
                 Checkbox = ControlCheckboxes();
+            }
+            if(Key > 0 && Key < 11) {
+                DrawTexture(Tick, ((Key - 1) % 2) * 110 + 10, ((Key - 1) / 2) * 110 + 10, WHITE);
+                MovingTroop = Troops[FromTileSelected - 1][Key - 1];
             }
             for(int i = 0; i < 2; ++i) {
                 TempDraw = DrawBuildingIcon(Buildings[FromTileSelected - 1][i].type, Empty_Icon);
@@ -1605,7 +1616,7 @@ void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon,
         PressedKeyC = 1;
     }
     else if(!PressedKeyP && !PressedKeyC && !PressedKeyM) {
-        DrawText("Press M to move a troop\nPress P to place a troop\nPress C to cancel", MapBorderX + 10, MapBorderY + 310, 25, BLACK);
+        DrawText("Press M to move a troop\nPress P to place a troop\nPress C to cancel", 10, 10, 25, BLACK);
     }
     if(PressedKeyP) {
         PlaceScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
@@ -1631,21 +1642,21 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
         if(!TroopChosen) {
             for(int i = 0; i < 10; ++i) {
                 TempDraw = DrawTroopIcon(Troops[TileSelected - 1][i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon, Plane_Icon);
-                DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
+                DrawTexture(TempDraw, (i % 2) * 110 + 10, (i / 2) * 110 + 10, WHITE);
                 if(Troops[TileSelected - 1][i].type != 'e') { 
                     RedBlue = DrawSide(Troops[TileSelected - 1][i].side, Red_Icon, Blue_Icon);
-                    DrawTexture(RedBlue, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
+                    DrawTextureEx(RedBlue, {(float)(i % 2) * 110 + 10, (float)(i / 2) * 110 + 10}, 0.0f, 2.0f, WHITE);
                     Health = DrawTroopHealth(Troops[TileSelected - 1][i].health, Troops[TileSelected - 1][i].type, Low_health, Medium_health, High_health, Full_health);
-                    DrawTexture(Health, MapBorderX - (((i + 1) % 2) * 60 + 73), (i / 2) * 60 + 51, WHITE);
+                    DrawTexture(Health, (i % 2) * 110 + 14, (i / 2) * 110 + 92, WHITE);
                 }
-                DrawText(TextFormat("%d", i), MapBorderX - (((i + 1) % 2) * 60 + 84), (i / 2) * 60 + 10, 15, BLACK);
+                DrawText(TextFormat("%d", i), (i % 2) * 110 + 90, (i / 2) * 110 + 14, 25, BLACK);
                 TempKey = GetKeyPressed() - 47;
                 if(TempKey >= 1 && TempKey <= 10) {
                     Key = TempKey;
                 }
-                if(Key > 0 && Key < 11) {
-                    DrawTexture(Tick, MapBorderX - (((Key) % 2) * 60 + 75), ((Key - 1) / 2) * 60 + 10, WHITE);
-                }
+            }
+            if(Key > 0 && Key < 11) {
+                DrawTexture(Tick, ((Key - 1) % 2) * 110 + 10, ((Key - 1) / 2) * 110 + 10, WHITE);
             }
             DrawCheckboxes();
             Checkbox = ControlCheckboxes();
@@ -1842,30 +1853,30 @@ void DrawActions(Image Map, int Map_width, int Map_height, Texture2D Infantry_Ic
     }
     else if(Action == 0) { // Red's Turn and actions
         DrawText("Choose an action", MapBorderX + 10, MapBorderY + Map_height + 10, 20, BLACK);
-        DrawRectangle(MapBorderX + 10, MapBorderY + Map_height + 50, 100, 40, GRAY);
-        DrawRectangle(MapBorderX + 140, MapBorderY + Map_height + 50, 100, 40, GRAY);
-        DrawRectangle(MapBorderX + 270, MapBorderY + Map_height + 50, 100, 40, GRAY);
-        DrawRectangle(MapBorderX - 120, MapBorderY + Map_height + 50, 100, 40, GRAY);
-        DrawText("Buy Troop\n/Skip Round", MapBorderX + 15, MapBorderY + Map_height + 55, 15, BLACK);
-        DrawText("Move/Place\nTroop", MapBorderX + 145, MapBorderY + Map_height + 55, 15, BLACK);
-        DrawText("Delete\nTroop", MapBorderX + 275, MapBorderY + Map_height + 55, 15, BLACK);
-        DrawText("Build\na building", MapBorderX - 115, MapBorderY + Map_height + 55, 15, BLACK);
-        DrawText(SelectedTip.c_str(), MapBorderX - 140, MapBorderY + 10, 23, BLACK);
+        DrawRectangle(10, 10, 185, 80, GRAY);
+        DrawRectangle(10, 100, 185, 80, GRAY);
+        DrawRectangle(205, 10, 185, 80, GRAY);
+        DrawRectangle(205, 100, 185, 80, GRAY);
+        DrawText("Buy Troop\n/Skip Round", 15, 10, 25, BLACK);
+        DrawText("Move/Place\nTroop", 15, 105, 25, BLACK);
+        DrawText("Delete\nTroop", 210, 15, 25, BLACK);
+        DrawText("Build\na building", 210, 105, 25, BLACK);
+        DrawText(SelectedTip.c_str(), 10, 200, 30, BLACK);
         if(MouseClicked) {
             GetMouseCoords();
-            if(MouseX >= MapBorderX + 10 && MouseX <= MapBorderX + 110 && MouseY >= MapBorderY + Map_height + 50 && MouseY <= MapBorderY + Map_height + 90) {
+            if(MouseX >= 10 && MouseX <= 195 && MouseY >= 10 && MouseY <= 90) {
                 Action = 1;
                 SelectedTip = GameplayTips[GetRandomValue(0,1)];
             }
-            else if(MouseX >= MapBorderX + 140 && MouseX <= MapBorderX + 240 && MouseY >= MapBorderY + Map_height + 50 && MouseY <= MapBorderY + Map_height + 90) {
-                Action = 2;
-                SelectedTip = GameplayTips[GetRandomValue(0,1)];
-            }
-            else if(MouseX >= MapBorderX + 270 && MouseX <= MapBorderX + 370 && MouseY >= MapBorderY + Map_height + 50 && MouseY <= MapBorderY + Map_height + 90) {
+            else if(MouseX >= 205 && MouseX <= 390 && MouseY >= 10 && MouseY <= 90) {
                 Action = 3;
                 SelectedTip = GameplayTips[GetRandomValue(0,1)];
             }
-            else if(MouseX >= MapBorderX - 120 && MouseX <= MapBorderX - 20 && MouseY >= MapBorderY + Map_height + 50 && MouseY <= MapBorderY + Map_height + 90) {
+            else if(MouseX >= 10 && MouseX <= 195 && MouseY >= 100 && MouseY <= 180) {
+                Action = 2;
+                SelectedTip = GameplayTips[GetRandomValue(0,1)];
+            }
+            else if(MouseX >= 205 && MouseX <= 390 && MouseY >= 100 && MouseY <= 180) {
                 Action = 4;
                 SelectedTip = GameplayTips[GetRandomValue(0,1)];
             }
@@ -2291,11 +2302,25 @@ void DrawTroops(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
         DrawTextureEx(TempDraw, {(float)i * 25 + 440, 99 - 5}, 0, 0.4, WHITE);
     }
 }
-
+void TileCenterSelector() {
+    InitWindow(1920, 1080, "Click to tile centers");
+    ToggleBorderlessWindowed();
+    SetTargetFPS(60);
+    while(!WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(WHITE);
+        EndDrawing();
+    }
+    CloseWindow();
+}
 
 int main() {
+    if(TileSelector) {
+        TileCenterSelector();
+    }
     CreateMapBonds();
     InitWindow(screenWidth, screenHeight, "Nameless Strategy Game");
+    ToggleBorderlessWindowed();
     // Map and Icons
     Image Tick_png = LoadImage("resources/Yes.png");
     Image Infantry_png = LoadImage("resources/Infantry.png");
@@ -2369,7 +2394,7 @@ int main() {
     Saves();
     SelectedTroop.type = 'n';
     MovingTroop.type = 'n';
-    while(IsKeyPressed(KEY_ESCAPE) || !WindowShouldClose()) { // Main Game Loop
+    while(!CloseTheWindow) { // Main Game Loop
         float MouseWheel = GetMouseWheelMove();
         if(MouseWheel != 0) {
             GameCamera.zoom += MouseWheel * 0.1f;
@@ -2382,11 +2407,11 @@ int main() {
             GameCamera.target.x -= MouseDifferance.x / GameCamera.zoom;
             GameCamera.target.y -= MouseDifferance.y / GameCamera.zoom;
         }
-        float ShowingWidth = Map.width / GameCamera.zoom;
-        float ShowingHeight = Map.height / GameCamera.zoom;
+        float ShowingWidth = (screenWidth - MapBorderX) / GameCamera.zoom;
+        float ShowingHeight = (screenHeight - MapBorderY) / GameCamera.zoom;
 
         float MaxX = MapBorderX + Map.width - ShowingWidth;
-        float MinX = MapBorderX;
+        float MinX = MapBorderX;;
         float MaxY = MapBorderY + Map.height - ShowingHeight;
         float MinY = MapBorderY;
         if (GameCamera.target.x < MinX) GameCamera.target.x = MinX;
@@ -2403,19 +2428,24 @@ int main() {
         }
         ClearMouseCoords();
         MouseClicked = IsMouseButtonPressed(0);
-
+        if(GameStarted && IsKeyPressed(KEY_ESCAPE) && !SettingsScreen && !LoadScreen && !SaveScreen) {
+            SettingsScreen = 1;
+        }
+        else if((GameStarted && IsKeyPressed(KEY_ESCAPE) && SettingsScreen) || LoadScreen || SaveScreen) {
+            SettingsScreen = 0;
+        }
         if(MouseClicked && GetTime() > 4) { // Mouse Controls
             GetMouseCoords();
-            if(GameStarted && MouseX >= MapBorderX && MouseX <= MapBorderX + Map.width && MouseY >= MapBorderY && MouseY <= MapBorderY + Map.height) {
+            if(GameStarted && MouseX >= MapBorderX && MouseX <= MapBorderX + Map.width && MouseY >= MapBorderY && MouseY <= MapBorderY + Map.height && !SettingsScreen && !SaveScreen && !LoadScreen) {
                 Vector2 MouseCoords = GetScreenToWorld2D(GetMousePosition(), GameCamera);
                 MouseX = MouseCoords.x;
                 MouseY = MouseCoords.y;
             }
             cout << MouseX << " " << MouseY << endl;
-            if(!GameStarted && MouseX >= 500 && MouseX <= 640 && MouseY >= 340 && MouseY <= 390 && !CreditScreen && !Restarted && !HowToPlayScreen) {
+            if(!GameStarted && MouseX >= 1600 && MouseX <= 1900 && MouseY >= 800 && MouseY <= 920 && !CreditScreen && !Restarted && !HowToPlayScreen) {
                 CreditScreen = 1;
             }
-            else if(!GameStarted && MouseX >= 500 && MouseX <= 640 && MouseY >= 280 && MouseY <= 330 && !CreditScreen && !Restarted && !HowToPlayScreen) {
+            else if(!GameStarted && MouseX >= 1600 && MouseX <= 1900 && MouseY >= 940 && MouseY <= 1060 && !CreditScreen && !Restarted && !HowToPlayScreen) {
                 HowToPlayScreen = 1;
             }
             else if(Restarted) {
@@ -2428,10 +2458,13 @@ int main() {
                 HowToPlayScreen = 0;
                 Page = 0;
             }
-            else if(GameStarted == false && !CreditScreen && !HowToPlayScreen && MouseX >= 10 && MouseX <= 310 && MouseY >= 150 && MouseY <= 250) {
+            else if(GameStarted && MouseX >= 800 && MouseX <= 1120 && MouseY >= 600 && MouseY <= 700 && SettingsScreen) {
+                CloseTheWindow = 1;
+            }
+            else if(GameStarted == false && !CreditScreen && !HowToPlayScreen && MouseX >= 200 && MouseX <= 800 && MouseY >= 400 && MouseY <= 600) {
                 GameStarted = true;
             }
-            else if(GameStarted == false && !CreditScreen && !HowToPlayScreen && MouseX >= 330 && MouseX <= 630 && MouseY >= 150 && MouseY <= 250) {
+            else if(GameStarted == false && !CreditScreen && !HowToPlayScreen && MouseX >= 1000 && MouseX <= 1600 && MouseY >= 400 && MouseY <= 600) {
                 GameStarted = true;
                 PlayWithABot = 1;
             }
@@ -2449,7 +2482,7 @@ int main() {
         }
         BeginDrawing();
 
-            if(GameStarted && RedCommanderAvalible && BlueCommanderAvalible && Round < 999 && !SaveScreen && !LoadScreen) { // Game Started
+            if(GameStarted && RedCommanderAvalible && BlueCommanderAvalible && Round < 999 && !SaveScreen && !LoadScreen && !SettingsScreen) { // Game Started
                 if(PlayWithABot && Round % 2) {
                     BotMove();
                 }
@@ -2458,30 +2491,28 @@ int main() {
                 BeginMode2D(GameCamera);
                 DrawTexture(Map, MapBorderX, MapBorderY, WHITE); // Draw map
                 DrawTexture(Show_Map, MapBorderX, MapBorderY, WHITE);
-                DrawTroops(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
+                //DrawTroops(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
                 EndMode2D();
-                DrawRectangle(0,0,150,400,WHITE);
-                DrawRectangle(0,Map.height,650,100,WHITE);
+                DrawRectangle(0,0,400,1080,WHITE);
                 DrawActions(Map_png, Map.width, Map.height, Infantry_Icon, Medic_Icon, WarPoint, Tick, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
-                DrawTurn(Map.width, Map.height, WarPoint);
-                DrawRound(Map.width, Map.height);
-                DrawTexture(Restart, 628, 378, WHITE);
-                DrawTexture(Save, 628, 356, WHITE);
-                DrawTexture(Load, 628, 334, WHITE);
-                if(MouseX >= 628 && MouseX <= 648 && MouseY >= 378 && MouseY <= 398) {
+                DrawTurn(WarPoint);
+                DrawRound(screenWidth - MapBorderX, screenHeight);
+            }
+            else if(SettingsScreen && GameStarted) {
+                DrawSettingsScreen(Restart, Save, Load);
+                if(MouseX >= 800 && MouseX <= 900 && MouseY >= 490 && MouseY <= 590) {
                     Restarted = 1;
                     goto restart;
                 }
-                else if(MouseX >= 628 && MouseX <= 648 && MouseY >= 356 && MouseY <= 376) {
+                else if(MouseX >= 910 && MouseX <= 1010 && MouseY >= 490 && MouseY <= 590) {
                     SaveScreen = 1;
                     for(int i = 0; i < 10; ++i) {
                         SaveName[i] = '\0';
                     }
                 }
-                else if(MouseX >= 628 && MouseX <= 648 && MouseY >= 334 && MouseY <= 354) {
+                else if(MouseX >= 1020 && MouseX <= 1120 && MouseY >= 490 && MouseY <= 590) {
                     LoadScreen = 1;
                 }
-
             }
             else if(SaveScreen && Round < 999) {
                 ClearBackground(WHITE);

@@ -331,11 +331,11 @@ void DrawHowToPlayScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2
         DrawTexture(Trench_Icon, 960, 10, WHITE);
         DrawText("Trench increases defense by 1.3x", 1062, 10, 25, BLACK);
         DrawTexture(FieldHospital_Icon, 960, 150, WHITE);
-        DrawText("Heals troops 5 health every round", 1062, 150, 25, BLACK);
+        DrawText("Field hospital heals troops 5 health every round", 1062, 150, 25, BLACK);
         DrawTexture(AntiAir_Icon, 960, 290, WHITE);
         DrawText("Anti-Air increases air attack by 1.3x", 1062, 290, 25, BLACK);
         DrawTexture(RepairWorkshop_Icon, 960, 430, WHITE);
-        DrawText("Heals planes 5 health every round", 1062, 430, 25, BLACK);
+        DrawText("Repair workshop heals planes 5 health every round", 1062, 430, 25, BLACK);
         DrawTexture(ArmyHouse_Icon, 960, 570, WHITE);
         DrawText("Army House increases attack by 1.3x", 1062, 570, 25, BLACK);
     }
@@ -343,7 +343,7 @@ void DrawHowToPlayScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2
         DrawText("->", 1890, 1050, 25, BLACK);
         /*DrawText("<-", 10, 380, 18, BLACK);*/
         DrawText("How rounds work: Every round you can only make 1 action. Actions include buying, skipping, moving, placing and deleting\n(Bought troops will be sent into the troop bank waiting for placement)", 10, 10, 25, BLACK);
-        DrawText("How warpoints work: Warpoints are the main currency to buy troops. It will increase 1, 2 or 3 randomly every 5 rounds\nand will get a +1 increase every 20 rounds.\n(For instance it will increase 3, 4 or 5 randomly at round 45)", 10, 200, 25, BLACK);
+        DrawText("How warpoints work: Warpoints are the main currency to buy troops. It will increase 2 or 3 randomly every 5 rounds\nand will get a +1 increase every 100 rounds.\n(For instance it will increase 4 or 5 randomly at round 205)", 10, 200, 25, BLACK);
         DrawText("How combat works: Combat happens at the start of every round Taken damage will be calculated by the formula enemyattack - yourdefense\nTaken damage will lower you troops health while heal increases it. Air troops like plane will only be damaged with air attack\n(Combat includes a little bit of randomness for fun)", 10, 400, 25, BLACK);
         DrawText("How tiles work: Each tile has a different terrain every terrain gives certain bonuses and debuffs\nForest: Attack 0.8x, Plains: Defense 0.8x, Mountains: Attack 0.75x, Defense 1.5x, City: Defense 1.25x, Bridge: Defense 1.5x, Hills: No effect", 10, 600, 25, BLACK);
     }
@@ -779,9 +779,9 @@ void Combat() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:\nMAJOR UPDATE", 10, 10, 40, BLACK);
     DrawText("Credits:", 960, 10, 40, BLACK);
-    DrawText("- New Textures\n- Bigger screen\n- UI changes\n- Map changes\n- Game is now in borderless window mode\nPS: Bot is not working now it will be readded soon", 10, 150, 30, BLACK);
+    DrawText("0.10:\n- New Textures\n- Bigger screen\n- UI changes\n- Map changes\n- Game is now in borderless window mode\nPS: Bot is not working now it will be readded soon\n0.10.0.1:\n- Changed warpoint increase mechanic\n- bugfixes", 10, 150, 30, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\nTextures:\nÖmer Kaymak\n\nMade with:\nC++/Raylib", 960, 150, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.10", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.10.0.1", 10, 1040, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -939,7 +939,7 @@ void DrawTitleScreen(Texture2D Logo) {
     DrawRectangle(1000, 400, 600, 200, GRAY);
     DrawText("Play with a friend", 250, 450, 50, BLACK);
     DrawText("Play with a bot", 1050, 450, 50, BLACK);
-    DrawText("Version: Pre-alpha 0.10", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.10.0.1", 10, 1040, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS GAME", 800, 10, 65, BLACK);
     DrawRectangle(1600, 800, 300, 120, GRAY);
@@ -967,9 +967,9 @@ void DrawRound(int Map_width, int Map_height) {
 }
 void IncreaseWarPoints() {
     int r = rand();
-    RedWarPoints += (r % 3 + 1) + (Round / 20);
+    RedWarPoints += (r % 2 + 2) + (Round / 100);
     r = rand();
-    BlueWarPoints += (r % 3 + 1) + (Round / 20);
+    BlueWarPoints += (r % 2 + 2) + (Round / 100);
     Increased = 1;
     cout << RedWarPoints << " " << BlueWarPoints << endl;
     return;
@@ -1097,13 +1097,13 @@ void ClearTroops() {
 }
 void DrawTurn(Texture2D WarPoint) {
     if(Round % 2 == 0) {
-        DrawText("Red", 300, 970, 40, RED);
-        DrawText(TextFormat("%d", RedWarPoints), 290, 1015, 50, RED);
+        DrawText("Red", 270, 970, 40, RED);
+        DrawText(TextFormat("%d", RedWarPoints), 270, 1015, 40, RED);
         DrawTextureEx(WarPoint, {335, 1015}, 0.0f, 0.6f, WHITE);
     }
     else {
-        DrawText("Blue", 300, 970, 40, BLUE);
-        DrawText(TextFormat("%d", BlueWarPoints), 290, 1015, 50, BLUE);
+        DrawText("Blue", 270, 970, 40, BLUE);
+        DrawText(TextFormat("%d", BlueWarPoints), 270, 1015, 40, BLUE);
         DrawTextureEx(WarPoint, {335, 1015}, 0.0f, 0.6f, WHITE);
     }
     return;
@@ -1397,18 +1397,18 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
     }
     else {
         if(!TroopChosen) {
-            DrawText("Select a troop from\nyour troop bank to place", MapBorderX + 10, MapBorderY + 310, 25, BLACK);
+            DrawText("Select a troop from\nyour troop bank to place", 10, 600, 29, BLACK);
             for(int i = 0; i < 10; ++i) {
                 TempDraw = DrawTroopIcon(BlueTroopBank[i].type, Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Artillery_Icon, Tank_Icon, Plane_Icon);
-                DrawTexture(TempDraw, MapBorderX - (((i + 1) % 2) * 60 + 75), (i / 2) * 60 + 10, WHITE);
-                DrawText(TextFormat("%d", i), MapBorderX - (((i + 1) % 2) * 60 + 84), (i / 2) * 60 + 10, 15, BLACK);
+                DrawTexture(TempDraw, (i % 2) * 110 + 10, (i / 2) * 110 + 10, WHITE);
+                DrawText(TextFormat("%d", i), (i % 2) * 110 + 90, (i / 2) * 110 + 14, 25, BLACK);
             }
             TempKey = GetKeyPressed() - 47;
             if(TempKey >= 1 && TempKey <= 10) {
                 Key = TempKey;
             }
             if(Key > 0) {
-                DrawTexture(Tick, MapBorderX - (((Key) % 2) * 60 + 75), ((Key - 1) / 2) * 60 + 10, WHITE);
+                DrawTexture(Tick, ((Key - 1) % 2) * 110 + 10, ((Key - 1) / 2) * 110 + 10, WHITE);
                 SelectedTroop = BlueTroopBank[Key - 1];
             }
         }
@@ -2534,7 +2534,7 @@ int main() {
         float ShowingHeight = (screenHeight - MapBorderY) / GameCamera.zoom;
 
         float MaxX = MapBorderX + Map.width - ShowingWidth;
-        float MinX = MapBorderX;;
+        float MinX = MapBorderX;
         float MaxY = MapBorderY + Map.height - ShowingHeight;
         float MinY = MapBorderY;
         if (GameCamera.target.x < MinX) GameCamera.target.x = MinX;

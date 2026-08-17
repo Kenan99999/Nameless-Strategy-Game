@@ -1,0 +1,70 @@
+#include <bits/stdc++.h>
+#include <raylib.h>
+#include "globals.h"
+#include "functions.h"
+using namespace std;
+
+void LoadGameTextures() {
+    Tick_png = LoadImage("resources/Yes.png");
+    Infantry_png = LoadImage("resources/Infantry.png");
+    Medic_png = LoadImage("resources/Medic.png");
+    Map_png = LoadImage("resources/map.png");
+    WarPoint_png = LoadImage("resources/Warpoint.png");
+    Commander_png = LoadImage("resources/Commander.png");
+    Logo_png = LoadImage("resources/Logo.png");
+    Empty_png = LoadImage("resources/Empty.png");
+    Red_png = LoadImage("resources/Red.png");
+    Blue_png = LoadImage("resources/Blue.png");
+    Low_png = LoadImage("resources/Low_health.png");
+    Medium_png = LoadImage("resources/Medium_health.png");
+    High_png = LoadImage("resources/High_health.png");
+    Full_png = LoadImage("resources/Full_health.png");
+    Restart_png = LoadImage("resources/Restart.png");
+    Save_png = LoadImage("resources/Save.png");
+    Load_png = LoadImage("resources/Load.png");
+    Trash_png = LoadImage("resources/Delete.png");
+    Artillery_png = LoadImage("resources/Artillery.png");
+    Tank_png = LoadImage("resources/Tank.png");
+    Show_png = LoadImage("resources/map_show.png");
+    Plane_png = LoadImage("resources/Plane.png");
+    Trench_png = LoadImage("resources/Trench.png");
+    Field_png = LoadImage("resources/Field_Hospital.png");
+    Anti_png = LoadImage("resources/Anti_Air.png");
+    Repair_png = LoadImage("resources/Repair_Workshop.png");
+    Army_png = LoadImage("resources/Army_House.png");
+    Green_png = LoadImage("resources/Green.png");
+    Yellow_png = LoadImage("resources/Yellow.png");
+    Orange_png = LoadImage("resources/Orange.png");
+    Purple_png = LoadImage("resources/Purple.png");
+    Tick = LoadTextureFromImage(Tick_png);
+    Infantry_Icon = LoadTextureFromImage(Infantry_png);
+    Medic_Icon = LoadTextureFromImage(Medic_png);
+    Map = LoadTextureFromImage(Map_png);
+    WarPoint = LoadTextureFromImage(WarPoint_png);
+    Commander_Icon = LoadTextureFromImage(Commander_png);
+    Logo = LoadTextureFromImage(Logo_png);
+    Empty_Icon = LoadTextureFromImage(Empty_png);
+    Red_Icon = LoadTextureFromImage(Red_png);
+    Blue_Icon = LoadTextureFromImage(Blue_png);
+    Low_health = LoadTextureFromImage(Low_png);
+    Medium_health = LoadTextureFromImage(Medium_png);
+    High_health = LoadTextureFromImage(High_png);
+    Full_health = LoadTextureFromImage(Full_png);
+    Restart = LoadTextureFromImage(Restart_png);
+    Save = LoadTextureFromImage(Save_png);
+    Load = LoadTextureFromImage(Load_png);
+    TrashBin = LoadTextureFromImage(Trash_png);
+    Artillery_Icon = LoadTextureFromImage(Artillery_png);
+    Tank_Icon = LoadTextureFromImage(Tank_png);
+    Show_Map = LoadTextureFromImage(Show_png);
+    Plane_Icon = LoadTextureFromImage(Plane_png);
+    Trench_Icon = LoadTextureFromImage(Trench_png);
+    FieldHospital_Icon = LoadTextureFromImage(Field_png);
+    AntiAir_Icon = LoadTextureFromImage(Anti_png);
+    RepairWorkshop_Icon = LoadTextureFromImage(Repair_png);
+    ArmyHouse_Icon = LoadTextureFromImage(Army_png);
+    Green = LoadTextureFromImage(Green_png);
+    Yellow = LoadTextureFromImage(Yellow_png);
+    Orange = LoadTextureFromImage(Orange_png);
+    Purple = LoadTextureFromImage(Purple_png);
+}

@@ -263,6 +263,7 @@ int Key;
 int TempKey;
 int Page = 0;
 int GhostRounds = 0;
+float ShowTroopsWhenZoomed = 1.5f;
 vector<string> GameSaves;
 troop MovingTroop;
 troop SelectedTroop;
@@ -311,6 +312,7 @@ Texture2D Green;
 Texture2D Yellow;
 Texture2D Orange;
 Texture2D Purple;
+Music Intro;
 // Functions
 void CreateTerrains() { // Terrain mapi olmadığı için bunu elimle yapıyorum ilerde değiştirmek nasip olursa değiştiririm
     string LoadingFile = "centers/tiles.txt";
@@ -336,8 +338,11 @@ void DrawSettingsScreen(Texture2D Restart_Icon, Texture2D Save_Icon, Texture2D L
     ClearBackground(WHITE);
     DrawRectangle(800, 600, 320, 100, GRAY);
     DrawRectangle(800, 710, 320, 100, GRAY);
+    DrawRectangle(800, 820, 320, 100, GRAY);
     DrawText("Close the game", 810, 610, 35, BLACK);
     DrawText("Show Bridge troops", 810, 720, 25, BLACK);
+    DrawText(TextFormat("%.1f", ShowTroopsWhenZoomed), 1060, 830, 25, BLACK);
+    DrawText("Show troops when\nzoomed more than", 810, 830, 25, BLACK);
     DrawText("Press Esc to return to the game", 600, 10, 60, BLACK);
     DrawTexture(Restart_Icon, 800, 490, WHITE);
     DrawTexture(Save_Icon, 910, 490, WHITE);
@@ -347,6 +352,12 @@ void DrawSettingsScreen(Texture2D Restart_Icon, Texture2D Save_Icon, Texture2D L
     }
     else {
         DrawRectangle(1070, 760, 50, 50, RED);
+    }
+    if(ShowTroopsWhenZoomed > 1.0f) {
+        DrawText("-", 1040, 900, 20, BLACK);
+    }
+    if(ShowTroopsWhenZoomed < 2.9f) {
+        DrawText("+", 1080, 900, 20, BLACK);
     }
 }
 void DrawHowToPlayScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Artillery_Icon, Texture2D Tank_Icon, Texture2D Plane_Icon) {
@@ -760,11 +771,11 @@ void Combat() {
     return;
 }
 void DrawCreditsandChangelogScreen() {
-    DrawText("Changelog:\nMAJOR UPDATE", 10, 10, 40, BLACK);
+    DrawText("Changelog:", 10, 10, 40, BLACK);
     DrawText("Credits:", 960, 10, 40, BLACK);
-    DrawText("- Player count added\n- Major and minor bugfixes\nPS: Bot is not working and will crash your\ngame if you try to play but will\nbe readded soon", 10, 150, 30, BLACK);
+    DrawText("0.10.1:\n- Player count added\n- Major and minor bugfixes\nPS: Bot is not working and will crash your\ngame if you try to play but will\nbe readded soon\n0.10.1.1:\n- Added a setting\n- Intro sound effect\n- bugfixes", 10, 150, 30, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\nTextures:\nÖmer Kaymak\n\nMade with:\nC++/Raylib", 960, 150, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.10.1", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.10.1.1", 10, 1040, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -933,7 +944,7 @@ void DrawTitleScreen(Texture2D Logo) {
     if(PlayerCount < 6) DrawText("+", 750, 550, 35, BLACK);
     if(PlayerCount > 2) DrawText("-", 700, 550, 35, BLACK);
     DrawText("Play with a bot\n(Disabled for now)", 1050, 450, 50, BLACK);
-    DrawText("Version: Pre-alpha 0.10.1", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.10.1.1", 10, 1040, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS GAME", 800, 10, 65, BLACK);
     DrawRectangle(1600, 800, 300, 120, GRAY);
@@ -2093,7 +2104,7 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
     return;
 }*/
 void DrawTroops(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon, Texture2D Plane_Icon) {
-    if(GameCamera.zoom > 1.4) {
+    if(GameCamera.zoom >= ShowTroopsWhenZoomed) {
         for(int j = 0; j < Centers.size(); ++j) {
             if((j >= 41 && ShowBridgeTroops) || j < 41) {
                 for(int i = 0; i < 10; ++i) {
@@ -2306,6 +2317,12 @@ int main() {
     GameplayTips[1] = "Gameplay\ntip:\nMedic can't\nheal a\nplane";
     SelectedTip = GameplayTips[GetRandomValue(0,1)];
     SetTargetFPS(60);
+    float TimePlayed = 0;
+    InitAudioDevice();
+    Intro = LoadMusicStream("sounds/intro.mp3");
+    PlayMusicStream(Intro);
+    SetMusicVolume(Intro, 1.0f);
+    SetMusicPan(Intro, 0.0f);
     restart:
     bool TroopsCleared = 0;
     GameCamera.target = {MapBorderX, MapBorderY};
@@ -2322,6 +2339,13 @@ int main() {
     int GameShouldEnd = 0;
     int GameDraw = 0;
     while(!CloseTheWindow) { // Main Game Loop
+        if(IsKeyPressed(KEY_F4) && IsKeyDown(KEY_LEFT_ALT)) {
+            CloseTheWindow = 1;
+            continue;
+        }
+        if(TimePlayed < 0.95f) UpdateMusicStream(Intro);
+        else PauseMusicStream(Intro);
+        TimePlayed = GetMusicTimePlayed(Intro)/GetMusicTimeLength(Intro);
         if(GameStarted && !TroopsCleared) {
             ClearTroops();
             TroopsCleared = 1;
@@ -2395,7 +2419,7 @@ int main() {
                 PlayerCount--;
             }
         }
-        if(MouseClicked && GetTime() > 4) { // Mouse Controls
+        if(MouseClicked && TimePlayed >= 0.95f) { // Mouse Controls
             GetMouseCoords();
             if(GameStarted && MouseX >= MapBorderX && MouseX <= MapBorderX + Map.width && MouseY >= MapBorderY && MouseY <= MapBorderY + Map.height && !SettingsScreen && !SaveScreen && !LoadScreen) {
                 Vector2 MouseCoords = GetScreenToWorld2D(GetMousePosition(), GameCamera);
@@ -2499,6 +2523,12 @@ int main() {
                 else if(MouseX >= 800 && MouseX <= 1120 && MouseY >= 710 && MouseY <= 810 && ShowBridgeTroops && MouseClicked) {
                     ShowBridgeTroops = 0;
                 }
+                else if(ShowTroopsWhenZoomed < 2.9f && IsKeyPressed(KEY_KP_ADD)) {
+                    ShowTroopsWhenZoomed += 0.1f;
+                }
+                else if(ShowTroopsWhenZoomed > 1.0f && IsKeyPressed(KEY_KP_SUBTRACT)) {
+                    ShowTroopsWhenZoomed -= 0.1f;
+                }
             }
             else if(SaveScreen && Round < 999 + GhostRounds) {
                 ClearBackground(WHITE);
@@ -2512,7 +2542,7 @@ int main() {
             }
             else if (!GameShouldEnd && Round < 999 + GhostRounds) { // Title screen
                 ClearBackground(WHITE);
-                if(GetTime() <= 4) DrawLogoScreen(Logo);
+                if(TimePlayed < 0.95f) DrawLogoScreen(Logo);
                 else if(CreditScreen) DrawCreditsandChangelogScreen();
                 else if(HowToPlayScreen) DrawHowToPlayScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Artillery_Icon, Tank_Icon, Plane_Icon);
                 else DrawTitleScreen(Logo);
@@ -2656,6 +2686,7 @@ int main() {
     UnloadTexture(Yellow);
     UnloadTexture(Orange);
     UnloadTexture(Purple);
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }

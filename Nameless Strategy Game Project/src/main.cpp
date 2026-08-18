@@ -6,6 +6,7 @@
 #include <enet/enet.h>
 #include "globals.h"
 #include "functions.h"
+#include "packets.h"
 struct tagMSG;
 typedef struct tagMSG *LPMSG;
 
@@ -14,7 +15,41 @@ using namespace filesystem;
 
 
 Music Intro;
+enum PlayerType {
+    PLAYER_NONE = 0,
+    PLAYER_HOTSEAT = 1,
+    PLAYER_CLIENT = 2,
+    PLAYER_HOST = 3
+};
+int PlayerCurrent = PLAYER_NONE;
+int PlayerID = 0;
+int LocalPlay = 0;
+bool ServerCreated = 0;
+bool JoiningServer = 0;
+vector<char> HostIP;
 // Functions
+void DrawServerScreen() {
+    if(Server == nullptr && Client == nullptr) {
+        DrawRectangle(200, 400, 600, 200, GRAY);
+        DrawRectangle(1000, 400, 600, 200, GRAY);
+        DrawText("Host", 210, 440, 50, BLACK);
+        DrawText("Join", 1010, 440, 50, BLACK);
+    }
+    if(Server != nullptr) {
+        DrawRectangle(200, 400, 600, 200, GREEN);
+        DrawText("Start the game", 210, 440, 50, BLACK);
+        DrawText(TextFormat("PlayerCount: %d", LocalPlayerCount), 1100, 440, 50, BLACK);
+    }
+    if(JoiningServer) {
+        DrawText("Enter Host IP and press enter", 600, 400, 50, BLACK);
+        string IP_String(HostIP.begin(), HostIP.end());
+        DrawText("IP: ", 600, 500, 50, BLACK);
+        DrawText(IP_String.c_str(), 700, 500, 50, BLACK);
+    }
+    if(Client != nullptr && JoiningServer == 0) {
+        DrawText("Waiting for the host to start the game\n(if the IP is wrong you will be kicked in like 30 seconds)", 210, 440, 50, BLACK);
+    }
+}
 
 void DrawSettingsScreen(Texture2D Restart_Icon, Texture2D Save_Icon, Texture2D Load_Icon) {
     ClearBackground(WHITE);
@@ -621,8 +656,10 @@ void DrawTitleScreen(Texture2D Logo) {
     DrawText("Changelog and\nCredits", 1610, 810, 35, BLACK);
     DrawRectangle(1600, 940, 300, 120, GRAY);
     DrawText("How to play", 1610, 950, 35, BLACK);
-    DrawRectangle(600, 620, 600, 200, GRAY);
-    DrawText("Close the game", 610, 640, 50, BLACK);
+    DrawRectangle(200, 620, 600, 200, GRAY);
+    DrawText("Close the game", 210, 640, 50, BLACK);
+    DrawRectangle(1000, 620, 600, 200, GRAY);
+    DrawText("Play local", 1010, 640, 50, BLACK);
 }
 void DrawLogoScreen(Texture2D Logo) {
     DrawTextureEx(Logo, {460, 10}, 0.0f, 20.0f, WHITE);
@@ -797,10 +834,15 @@ void CommanderPlacement() {
         DrawCheckboxes();
         Checkbox = ControlCheckboxes();
         if(Checkbox == 1) {
-            if(IsCommanderPlacementOkay(TileSelected, Players[Round % PlayerCount].color)) {
-                Action = 0;
+            if(PlayerCurrent == PLAYER_HOTSEAT) {
+                if(IsCommanderPlacementOkay(TileSelected, Players[Round % PlayerCount].color)) {
+                    Action = 0;
+                }
+                TileSelected = 0;
             }
-            TileSelected = 0;
+            else if(PlayerCurrent >= PLAYER_CLIENT) {
+                //send to server
+            }
         }
         else if(Checkbox == 2) {
             TileSelected = 0;
@@ -808,79 +850,9 @@ void CommanderPlacement() {
         Checkbox = 0;
     }
 }
-void AddBoughtTroopToTheTroopBank() {
-        for(int i = 0; i < 10; ++i) {
-            if(Players[Round % PlayerCount].TroopBank[i].type == empty_troop.type) {
-                switch(BoughtTroop) {
-                    case 1:
-                        Players[Round % PlayerCount].WarPoints -= Infantry_Cost;
-                        if(Players[Round % PlayerCount].WarPoints < 0) {
-                            cout << "You don't have enough War Points!" << endl;
-                            Players[Round % PlayerCount].WarPoints += Infantry_Cost;
-                            return;
-                        }
-                        Players[Round % PlayerCount].TroopBank[i] = infantry;
-                        Players[Round % PlayerCount].TroopBank[i].side = Players[Round % PlayerCount].color;
 
-                        break;
-                    case 2:
-                        Players[Round % PlayerCount].WarPoints -= Medic_Cost;
-                        if(Players[Round % PlayerCount].WarPoints < 0) {
-                            cout << "You don't have enough War Points!" << endl;
-                            Players[Round % PlayerCount].WarPoints += Medic_Cost;
-                            return;
-                        }
-                        Players[Round % PlayerCount].TroopBank[i] = medic;
-                        Players[Round % PlayerCount].TroopBank[i].side = Players[Round % PlayerCount].color;
-
-                        break;
-                    case 3:
-                        Players[Round % PlayerCount].WarPoints -= Artillery_Cost;
-                        if(Players[Round % PlayerCount].WarPoints < 0) {
-                            cout << "You don't have enough War Points!" << endl;
-                            Players[Round % PlayerCount].WarPoints += Artillery_Cost;
-                            return;
-                        }
-                        Players[Round % PlayerCount].TroopBank[i] = artillery;
-                        Players[Round % PlayerCount].TroopBank[i].side = Players[Round % PlayerCount].color;
-
-                        break;
-                    case 4:
-                        Players[Round % PlayerCount].WarPoints -= Tank_Cost;
-                        if(Players[Round % PlayerCount].WarPoints < 0) {
-                            cout << "You don't have enough War Points!" << endl;
-                            Players[Round % PlayerCount].WarPoints += Tank_Cost;
-                            return;
-                        }
-                        Players[Round % PlayerCount].TroopBank[i] = tank;
-                        Players[Round % PlayerCount].TroopBank[i].side = Players[Round % PlayerCount].color;
-
-                        break;
-                    case 5:
-                        Players[Round % PlayerCount].WarPoints -= Plane_Cost;
-                        if(Players[Round % PlayerCount].WarPoints < 0) {
-                            cout << "You don't have enough War Points!" << endl;
-                            Players[Round % PlayerCount].WarPoints += Plane_Cost;
-                            return;
-                        }
-                        Players[Round % PlayerCount].TroopBank[i] = plane;
-                        Players[Round % PlayerCount].TroopBank[i].side = Players[Round % PlayerCount].color;
-
-                        break;
-                    default:
-                        break;
-                }
-                cout << "Bought troop added to slot " << i << endl;
-                Round++;
-                return;
-            }
-        }
-        cout << "There are no empty_troop spaces for another troop!" << endl;
-        BoughtTroop = 0;
-        Action = 0;
-}
 void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon, Texture2D Plane_Icon) {
-    int TroopCount = 0;
+
         if(!TroopChosen) {
             DrawText("Select a troop from\nyour troop bank to place", 10, 600, 29, BLACK);
             for(int i = 0; i < 10; ++i) {
@@ -901,52 +873,11 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
             ChangeTileSelected();
             DrawTileSelected();
             if(Checkbox == 1 && TileSelected != 0) {
-                for(int i = 0; i < 10; ++i) {
-                    if(Troops[TileSelected - 1][i].type != 'e' && Troops[TileSelected - 1][i].side != Players[Round % PlayerCount].color) {
-                        IsTileOkay = 0;
-                    }
-                    if(Troops[TileSelected - 1][i].side == Players[Round % PlayerCount].color && Troops[TileSelected - 1][i].type == 'c') {
-                        IsCommanderHere = 1;
-                    }
-                    if(Troops[TileSelected - 1][i].side == Players[Round % PlayerCount].color) {
-                        TroopCount++;
-                    }
-                    else if(Troops[TileSelected - 1][i].type == 'e' && !EmptyCounter) {
-                        EmptyCounter = i + 1;
-                    }
+                if(PlayerCurrent == PLAYER_HOTSEAT) {
+                    IsPlacementOkay(TileSelected, Round % PlayerCount);
                 }
-                if(TroopCount >= 5) {
-                    IsTileOkay = 0;
-                    IsCommanderHere = 0;
-                }
-                if(!EmptyCounter) {
-                    IsTileOkay = 0;
-                    IsCommanderHere = 0;
-                }
-                if(IsTileOkay || IsCommanderHere) {
-                    Troops[TileSelected - 1][EmptyCounter - 1] = Players[Round % PlayerCount].TroopBank[Key - 1];
-                    Players[Round % PlayerCount].TroopBank[Key - 1] = empty_troop;
-                    cout << "a(n) " << Troops[TileSelected - 1][EmptyCounter - 1].type << " troop succesfully placed" << endl;
-                    Round++;
-                    Action = 0;
-                    PressedKeyC = 0;
-                    PressedKeyP = 0;
-                    PressedKeyM = 0;
-                    Checkbox = 0;
-                    TempKey = 0;
-                    TroopChosen = 0;
-                    TileSelected = 0;
-                    IsTileOkay = 1;
-                    IsCommanderHere = 0;
-                    EmptyCounter = 0;
-                    Key = 0;
-                    return;
-                }
-                else {
-                    cout << "Tile is either occupied by the enemy or doesn't have any empty_troop slots" << endl;
-                    IsTileOkay = 1;
-                    EmptyCounter = 0;
-                    Checkbox = 0;
+                else if(PlayerCurrent >= PLAYER_CLIENT) {
+                    // server packet
                 }
             }
         }
@@ -961,9 +892,6 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
             TempKey = 0;
             TroopChosen = 0;
             TileSelected = 0;
-            IsTileOkay = 1;
-            IsCommanderHere = 0;
-            EmptyCounter = 0;
             Key = 0;
         }
         else if(Checkbox == 1 && (SelectedTroop.type == 'e' || SelectedTroop.type == 'n')) {
@@ -1132,7 +1060,7 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
         }
     }
 }
-void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Tick, Image Map, int Map_width, int Map_height, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon, Texture2D Plane_Icon) {
+void DrawMoveandPlaceTroopsScreen() {
     if(!PressedKeyC && !PressedKeyP && IsKeyPressed(KEY_M)) {
         PressedKeyM = 1;
     }
@@ -1146,7 +1074,7 @@ void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon,
         DrawText("Press M to move a troop\nPress P to place a troop\nPress C to cancel", 10, 10, 30, BLACK);
     }
     if(PressedKeyP) {
-        PlaceScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
+        PlaceScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map_png, Map_png.width, Map_png.height, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
         return;
     }
     else if(PressedKeyC) {
@@ -1157,7 +1085,7 @@ void DrawMoveandPlaceTroopsScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon,
         return;
     }
     else if(PressedKeyM) {
-        MoveScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map, Map_width, Map_height, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
+        MoveScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map_png, Map_png.width, Map_png.height, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
     }
 }
 void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D WarPoint, Texture2D Tick, Texture2D Commander_Icon, Texture2D Empty_Icon, Texture2D Red_Icon, Texture2D Blue_Icon, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health, Texture2D Artillery_Icon, Texture2D Tank_Icon, Texture2D Plane_Icon) {
@@ -1358,7 +1286,8 @@ void DrawActions() {
         }
         else if(Checkbox == 1) {
             if(BoughtTroop != 0) {
-                AddBoughtTroopToTheTroopBank();
+                if (PlayerCurrent == PLAYER_HOTSEAT) AddBoughtTroopToTheTroopBank(BoughtTroop, Round % PlayerCount);
+                else if(PlayerCurrent >= PLAYER_CLIENT); // server;
                 Action = 0;
                 Checkbox = 0;
                 BoughtTroop = 0;
@@ -1378,7 +1307,7 @@ void DrawActions() {
         TroopBuying(Tick);
     }
     else if(Action == 2) {
-        DrawMoveandPlaceTroopsScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Tick, Map_png, Map_png.width, Map_png.height, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
+        DrawMoveandPlaceTroopsScreen();
     }
     else if(Action == 3) {
         DrawDeleteTroopsScreen(Map_png, Infantry_Icon, Medic_Icon, WarPoint, Tick, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
@@ -1566,10 +1495,166 @@ int main() {
     MovingTroop.type = 'n';
     int GameShouldEnd = 0;
     int GameDraw = 0;
+    if(enet_initialize() != 0) {
+        cout << "control your internet" << endl;
+        return EXIT_FAILURE;
+    }
+    atexit(enet_deinitialize);
+    ENetAddress Host_Address;
+    Host_Address.port = 2222;
+    Host_Address.host = ENET_HOST_ANY;
+    ENetAddress Client_Address;
+    Client_Address.port = 2222;
     while(!CloseTheWindow) { // Main Game Loop
         if(IsKeyPressed(KEY_F4) && IsKeyDown(KEY_LEFT_ALT)) {
             CloseTheWindow = 1;
             continue;
+        }
+        ENetEvent event;
+        if(LocalPlay && Server != nullptr) { //server
+            while(enet_host_service(Server, &event, 0) > 0) {
+                switch(event.type) {
+                    case ENET_EVENT_TYPE_CONNECT:
+                    {
+                        if(GameStarted || LocalPlayerCount >= 6) {
+                            cout << "Game already started or maximum capacity has been reached" << endl;
+                            enet_peer_disconnect_now(event.peer, 0);
+                            LocalPlay = 0;
+                            PlayerCurrent = PLAYER_NONE;
+                            HostIP.clear();
+                            continue;
+                        }
+                        else {
+                            LocalPlayerCount++;
+                            event.peer->data = (void*)(uintptr_t)LocalPlayerCount;
+                            cout << "player " << LocalPlayerCount  << " joined" << endl;
+                            PACKET_PLAYER_JOIN Join;
+                            Join.ID = LocalPlayerCount;
+                            Join.CurrentPlayerCount = LocalPlayerCount;
+
+                            ENetPacket* join_packet;
+                            enet_packet_create(&Join, sizeof(Join), ENET_PACKET_FLAG_RELIABLE);
+                            enet_peer_send(event.peer, 0, join_packet);
+                        }
+                        break;
+                    }
+                    case ENET_EVENT_TYPE_DISCONNECT:
+                    {
+                        int DisconnectedID = (int)(uintptr_t)event.peer->data;
+                        cout << "player " << DisconnectedID << " disconnected" << endl;
+                        if(GameStarted) Players[DisconnectedID].CommanderAvalible = 0;
+                        else {
+                            LocalPlayerCount--;
+                            for(size_t i = 0; i < Server->peerCount; ++i) {
+                                ENetPeer* Peers = &Server->peers[i];
+                                if(Peers->state == ENET_PEER_STATE_CONNECTED) {
+                                    int PeersID = (int)(uintptr_t)Peers->data;
+                                    if(PeersID > DisconnectedID) {
+                                        Peers->data = (void*)(uintptr_t)(PeersID - 1);
+                                    }
+                                }
+                            }
+                            cout << "Lobby updated and ID's shifted" << endl;
+                        }
+                        PACKET_PLAYER_DISCONNECT Disjoin;
+                        Disjoin.DisconnectedID = DisconnectedID;
+
+                        ENetPacket* disconnect_packet = enet_packet_create(&Disjoin, sizeof(Disjoin), ENET_PACKET_FLAG_RELIABLE);
+                        enet_host_broadcast(Server, 0, disconnect_packet);
+                        break;
+                    }
+                    case ENET_EVENT_TYPE_RECEIVE:
+                        enet_packet_destroy(event.packet);
+                        break;
+                }
+            }
+        }
+        else if(LocalPlay && Client != nullptr) { //client
+            while (enet_host_service(Client, &event, 0) > 0) {
+                switch(event.type) {
+                    case ENET_EVENT_TYPE_CONNECT:
+                        cout << "Connected succesfully" << endl;
+                        break;
+                    case ENET_EVENT_TYPE_DISCONNECT:
+                        cout << "Disconnected or server denied us" << endl;
+                        LocalPlay = 0;
+                        HostIP.clear();
+                        PlayerCurrent = PLAYER_NONE;
+                        break;
+                    case ENET_EVENT_TYPE_RECEIVE:
+                        Packets* type = (Packets*)event.packet->data;
+                        if(*type == JOIN_RESPONSE) {
+                            PACKET_PLAYER_JOIN* JoiningData = (PACKET_PLAYER_JOIN*)event.packet->data;
+                            PlayerID = JoiningData->ID;
+                            LocalPlayerCount = JoiningData->CurrentPlayerCount;
+                            cout << "My ID: " << PlayerID << "\n" << "Total player count: " << LocalPlayerCount << endl;
+                        }
+                        if(*type == DISCONNECTED) {
+                            PACKET_PLAYER_DISCONNECT* DisconnectingData = (PACKET_PLAYER_DISCONNECT*)event.packet->data;
+                            int DisconnectingID = DisconnectingData->DisconnectedID;
+                            cout << "ID: " << DisconnectingID << " Disconnected" << endl;
+                            if(GameStarted) {
+                                Players[DisconnectingID].CommanderAvalible = 0;
+                            }
+                            else if(PlayerID > DisconnectingID) {
+                                LocalPlayerCount--;
+                                PlayerID--;
+                            }
+                        }
+                        enet_packet_destroy(event.packet);
+                        break;
+                }
+            }
+        }
+        if(PlayerCurrent == PLAYER_HOST && Server == nullptr) { //hosting
+            Server = enet_host_create(&Host_Address, 6, 1, 0, 0);
+            if(Server == nullptr) {
+                cout << "A server already exists" << endl;
+                PlayerCurrent = PLAYER_NONE;
+                LocalPlay = 0;
+                continue;
+            }
+            cout << "Server is ready" << endl;
+            LocalPlayerCount = 1;
+            PlayerID = 1;
+        }
+        if(PlayerCurrent == PLAYER_CLIENT && Client == nullptr) { //joining
+            Client = enet_host_create(NULL, 1, 2, 0, 0);
+            if(Client == nullptr) {
+                cout << "Error joining to the server" << endl;
+                PlayerCurrent = PLAYER_NONE;
+                LocalPlay = 0;
+                continue;
+            }
+            JoiningServer = 1;
+        }
+        if(JoiningServer) { //joined
+            int KeyPressed = GetKeyPressed();
+            int CharPressed = GetCharPressed();
+            if(KeyPressed == KEY_ENTER) {
+                string IP_String(HostIP.begin(), HostIP.end());
+                enet_address_set_host(&Client_Address, IP_String.c_str());
+                cout << "Connecting to " << IP_String << "..." << endl;
+                Peer = enet_host_connect(Client, &Client_Address, 1, 0);
+                if(Peer == NULL) {
+                    cout << "Can't connect" << endl;
+                    PlayerCurrent = PLAYER_NONE;
+                    LocalPlay = 0;
+                    JoiningServer = 0;
+                    continue;
+                }
+                JoiningServer = 0;
+                continue;
+            }
+            else if(KeyPressed == KEY_ESCAPE) {
+                JoiningServer = 0;
+                PlayerCurrent = PLAYER_NONE;
+                HostIP.clear();
+            }
+            else if(KeyPressed == KEY_BACKSPACE && !HostIP.empty()) {
+                HostIP.pop_back();
+            }
+            if(CharPressed > 0) HostIP.push_back((char)CharPressed);
         }
         if(TimePlayed < 0.95f) UpdateMusicStream(Intro);
         else PauseMusicStream(Intro);
@@ -1655,14 +1740,17 @@ int main() {
                 MouseY = MouseCoords.y;
             }
             cout << MouseX << " " << MouseY << endl;
-            if(!GameStarted && MouseX >= 1600 && MouseX <= 1900 && MouseY >= 800 && MouseY <= 920 && !CreditScreen && !Restarted && !HowToPlayScreen) {
+            if(!GameStarted && MouseX >= 1600 && MouseX <= 1900 && MouseY >= 800 && MouseY <= 920 && !CreditScreen && !Restarted && !HowToPlayScreen && !LocalPlay) {
                 CreditScreen = 1;
             }
-            else if(!GameStarted && MouseX >= 1600 && MouseX <= 1900 && MouseY >= 940 && MouseY <= 1060 && !CreditScreen && !Restarted && !HowToPlayScreen) {
+            else if(!GameStarted && MouseX >= 1600 && MouseX <= 1900 && MouseY >= 940 && MouseY <= 1060 && !CreditScreen && !Restarted && !HowToPlayScreen && !LocalPlay) {
                 HowToPlayScreen = 1;
             }
-            else if(!GameStarted && MouseX >= 600 && MouseX <= 1200 && MouseY >= 620 && MouseY <= 820 && !CreditScreen && !Restarted && !HowToPlayScreen) {
+            else if(!GameStarted && MouseX >= 200 && MouseX <= 800 && MouseY >= 620 && MouseY <= 820 && !CreditScreen && !Restarted && !HowToPlayScreen && !LocalPlay) {
                 CloseTheWindow = 1;
+            }
+            else if(!GameStarted && MouseX >= 1000 && MouseX <= 1600 && MouseY >= 620 && MouseY <= 820 && !CreditScreen && !Restarted && !HowToPlayScreen) {
+                LocalPlay = 1;
             }
             else if(Restarted) {
                 Restarted = 0;
@@ -1677,8 +1765,18 @@ int main() {
             else if(GameStarted && MouseX >= 800 && MouseX <= 1120 && MouseY >= 600 && MouseY <= 700 && SettingsScreen) {
                 CloseTheWindow = 1;
             }
-            else if(GameStarted == false && !CreditScreen && !HowToPlayScreen && MouseX >= 200 && MouseX <= 800 && MouseY >= 400 && MouseY <= 600) {
+            else if(LocalPlay && MouseX >= 200 && MouseX <= 800 && MouseY >= 400 && MouseY <= 600) {
+                PlayerCurrent = PLAYER_HOST;
+            }
+            else if(LocalPlay && MouseX >= 1000 && MouseX <= 1600 && MouseY >= 400 && MouseY <= 600) {
+                PlayerCurrent = PLAYER_CLIENT;
+            }
+            else if(LocalPlay && IsKeyPressed(KEY_ESCAPE)) {
+                LocalPlay = 0;
+            }
+            else if(GameStarted == false && !CreditScreen && !HowToPlayScreen && MouseX >= 200 && MouseX <= 800 && MouseY >= 400 && MouseY <= 600 && !LocalPlay) {
                 GameStarted = true;
+                PlayerCurrent = PLAYER_HOTSEAT;
                 if(PlayerCount >= 2) {
                     Players.push_back(red);
                     Players.push_back(blue);
@@ -1696,7 +1794,7 @@ int main() {
                     Players.push_back(purple);
                 }
             }
-            else if(GameStarted == false && !CreditScreen && !HowToPlayScreen && MouseX >= 1000 && MouseX <= 1600 && MouseY >= 400 && MouseY <= 600) {
+            else if(GameStarted == false && !CreditScreen && !HowToPlayScreen && MouseX >= 1000 && MouseX <= 1600 && MouseY >= 400 && MouseY <= 600 && !LocalPlay) {
                 GameStarted = true;
                 PlayWithABot = 1;
             }
@@ -1726,9 +1824,22 @@ int main() {
                 DrawTroops(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
                 EndMode2D();
                 DrawRectangle(0,0,400,1080,WHITE);
-                DrawActions();
-                DrawTurn(WarPoint);
-                DrawRound(screenWidth - MapBorderX, screenHeight);
+                if(PlayerCurrent == PLAYER_HOTSEAT) {
+                    DrawActions();
+                    DrawTurn(WarPoint);
+                    DrawRound(screenWidth - MapBorderX, screenHeight);
+                }
+                else if(Round % PlayerCount == PlayerID && PlayerCurrent >= PLAYER_CLIENT) {
+                    DrawActions();
+                    DrawTurn(WarPoint);
+                    DrawRound(screenWidth - MapBorderX, screenHeight);     
+                }
+                else if(PlayerCurrent >= PLAYER_CLIENT && Players[PlayerID].CommanderAvalible) {
+                    DrawText("Wait for\nyour turn!", 10, 10, 60, RED);
+                }
+                else if(PlayerCurrent >= PLAYER_CLIENT) {
+                    DrawText("You are out!", 10, 10, 50, RED);
+                }
             }
             else if(SettingsScreen && GameStarted) {
                 DrawSettingsScreen(Restart, Save, Load);
@@ -1773,7 +1884,8 @@ int main() {
                 if(TimePlayed < 0.95f) DrawLogoScreen(Logo);
                 else if(CreditScreen) DrawCreditsandChangelogScreen();
                 else if(HowToPlayScreen) DrawHowToPlayScreen(Infantry_Icon, Medic_Icon, Commander_Icon, Artillery_Icon, Tank_Icon, Plane_Icon);
-                else DrawTitleScreen(Logo);
+                else if(!LocalPlay) DrawTitleScreen(Logo);
+                else DrawServerScreen();
             }
             else if(GameShouldEnd && Round < 999 + GhostRounds) {
                 if(GameDraw) {
@@ -1915,6 +2027,7 @@ int main() {
     UnloadTexture(Orange);
     UnloadTexture(Purple);
     CloseAudioDevice();
+    enet_host_destroy(Server);
     CloseWindow();
     return 0;
 }

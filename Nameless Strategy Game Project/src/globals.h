@@ -1,6 +1,12 @@
 #pragma once
+#define WIN32_LEAN_AND_MEAN
+#define NOGDI
+#define NOUSER
 #include <bits/stdc++.h>
 #include <raylib.h>
+#include <enet/enet.h>
+struct tagMSG;
+typedef struct tagMSG *LPMSG;
 using namespace std;
 struct troop {
     char type;
@@ -356,3 +362,8 @@ inline Texture2D Green;
 inline Texture2D Yellow;
 inline Texture2D Orange;
 inline Texture2D Purple;
+// buynları resatarta ekle
+inline ENetHost* Server = nullptr;
+inline ENetHost* Client = nullptr;
+inline ENetPeer* Peer = nullptr;
+inline int LocalPlayerCount = 0;

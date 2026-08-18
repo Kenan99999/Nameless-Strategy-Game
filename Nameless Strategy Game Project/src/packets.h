@@ -1,0 +1,35 @@
+#pragma once
+enum Packets {
+    DENY = 0,
+    SUCCESS = 1,
+    BUY_TROOP = 2,
+    PLACE_TROOP = 3,
+    MOVE_TROOP = 4,
+    DELETE_TROOP = 5,
+    BUILD = 6,
+    PLACE_COMMANDER = 7,
+    JOIN_RESPONSE = 8,
+    START_GAME = 9,
+    DISCONNECTED = 10
+};
+
+struct PACKET_PLAYER_JOIN {
+    Packets type = JOIN_RESPONSE;
+    int ID;
+    int CurrentPlayerCount;
+};
+
+struct PACKET_START_THE_GAME {
+    Packets type = START_GAME;
+};
+
+struct PACKET_PLAYER_DISCONNECT {
+    Packets type = DISCONNECTED;
+    int DisconnectedID;
+};
+
+struct PACKET_COMMANDER_PLACEMENT {
+    Packets type = PLACE_COMMANDER;
+    char player;
+    int Tile;
+};

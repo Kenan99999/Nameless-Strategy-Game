@@ -10,7 +10,8 @@ enum Packets {
     PLACE_COMMANDER = 7,
     JOIN_RESPONSE = 8,
     START_GAME = 9,
-    DISCONNECTED = 10
+    DISCONNECTED = 10,
+    INCREASE_ROUND = 11
 };
 
 struct PACKET_PLAYER_JOIN {
@@ -30,6 +31,16 @@ struct PACKET_PLAYER_DISCONNECT {
 
 struct PACKET_COMMANDER_PLACEMENT {
     Packets type = PLACE_COMMANDER;
-    char player;
+    int PlayerID;
     int Tile;
+};
+
+struct PACKET_BUY_TROOP {
+    Packets type = BUY_TROOP;
+    int PlayerID;
+    int BoughtTroop;
+};
+
+struct PACKET_ROUND {
+    Packets type = INCREASE_ROUND;
 };

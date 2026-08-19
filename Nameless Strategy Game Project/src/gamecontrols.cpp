@@ -4,14 +4,14 @@
 
 using namespace std;
 
-bool IsCommanderPlacementOkay(int Tile, char Gamer) {
+bool IsCommanderPlacementOkay(int Tile, int PlayerID) {
     if(Troops[Tile - 1][0].type != 'e' || Tile > 47) {
         if(Tile > 47) cout << "Commander can't swim!" << endl;
         cout << "can't place a commander on enemy tile!" << endl;
         return false;
     }
     Troops[Tile - 1][0] = commander;
-    Troops[Tile - 1][0].side = Gamer;
+    Troops[Tile - 1][0].side = Players[PlayerID - 1].color;
     Round++;
     return true;
 }
@@ -56,6 +56,7 @@ bool IsPlacementOkay(int Tile, int PlayerID) {
         TempKey = 0;
         TroopChosen = 0;
         Key = 0;
+        TileSelected = 0;
         return true;
     }
     else {
@@ -137,3 +138,19 @@ bool AddBoughtTroopToTheTroopBank(int Troop, int PlayerID) {
         Action = 0;
         return false;
 }
+
+void DeleteEliminatedTroops(int PlayerCount) {
+    for(int i = 0; i < PlayerCount; ++i) {
+        if(Players[i].CommanderAvalible) {
+            continue;
+        }
+        for(int j = 0; j < 47; ++j) {
+            for(int k = 0; k < 10; ++k) {
+                if(Troops[j][k].side == Players[i].color) {
+                    Troops[j][k] = empty_troop;
+                }
+            }
+        }
+    }
+}
+

@@ -26,28 +26,33 @@ int PlayerID = 0;
 int LocalPlay = 0;
 bool ServerCreated = 0;
 bool JoiningServer = 0;
+bool InServer = 0;
+bool LocalPlayersPushedBack = 0;
 vector<char> HostIP;
 // Functions
 void DrawServerScreen() {
-    if(Server == nullptr && Client == nullptr) {
+    if(PLAYER_NONE == PlayerCurrent) {
         DrawRectangle(200, 400, 600, 200, GRAY);
         DrawRectangle(1000, 400, 600, 200, GRAY);
         DrawText("Host", 210, 440, 50, BLACK);
         DrawText("Join", 1010, 440, 50, BLACK);
     }
-    if(Server != nullptr) {
+    if(Server != nullptr && PlayerCurrent == PLAYER_HOST) {
         DrawRectangle(200, 400, 600, 200, GREEN);
         DrawText("Start the game", 210, 440, 50, BLACK);
         DrawText(TextFormat("PlayerCount: %d", LocalPlayerCount), 1100, 440, 50, BLACK);
     }
-    if(JoiningServer) {
+    else if(InServer && PlayerCurrent == PLAYER_CLIENT) {
+        DrawText("Waiting for the host to start the game", 210, 440, 50, BLACK);
+    }
+    else if(JoiningServer == 0 && Peer != nullptr && PlayerCurrent == PLAYER_CLIENT) {
+        DrawText("joining...", 600, 400, 50, BLACK);
+    }
+    else if(JoiningServer && PlayerCurrent == PLAYER_CLIENT) {
         DrawText("Enter Host IP and press enter", 600, 400, 50, BLACK);
         string IP_String(HostIP.begin(), HostIP.end());
         DrawText("IP: ", 600, 500, 50, BLACK);
         DrawText(IP_String.c_str(), 700, 500, 50, BLACK);
-    }
-    if(Client != nullptr && JoiningServer == 0) {
-        DrawText("Waiting for the host to start the game\n(if the IP is wrong you will be kicked in like 30 seconds)", 210, 440, 50, BLACK);
     }
 }
 
@@ -235,7 +240,7 @@ void ReArrangeTroops() {
             if(Players[k].TroopBank[i].type == 'e') {
                 for(int j = i; j < 10; ++j) {
                     if(Players[k].TroopBank[j].type != 'e') {
-                        Players[k].TroopBank[i] = Players[j].TroopBank[j];
+                        Players[k].TroopBank[i] = Players[k].TroopBank[j];
                         Players[k].TroopBank[j] = empty_troop;
                         break;
                     }
@@ -835,13 +840,28 @@ void CommanderPlacement() {
         Checkbox = ControlCheckboxes();
         if(Checkbox == 1) {
             if(PlayerCurrent == PLAYER_HOTSEAT) {
-                if(IsCommanderPlacementOkay(TileSelected, Players[Round % PlayerCount].color)) {
+                if(IsCommanderPlacementOkay(TileSelected, (Round % PlayerCount) + 1)) {
                     Action = 0;
                 }
                 TileSelected = 0;
             }
-            else if(PlayerCurrent >= PLAYER_CLIENT) {
-                //send to server
+            else if(PlayerCurrent == PLAYER_HOST) {
+                if(IsCommanderPlacementOkay(TileSelected, PlayerID)) {
+                    PACKET_COMMANDER_PLACEMENT commander_placed;
+                    commander_placed.PlayerID = PlayerID;
+                    commander_placed.Tile = TileSelected;
+                    
+                    ENetPacket* commander_placed_packet = enet_packet_create(&commander_placed, sizeof(commander_placed), ENET_PACKET_FLAG_RELIABLE);
+                    enet_host_broadcast(Server, 0, commander_placed_packet);
+                }
+            }
+            else if(PlayerCurrent == PLAYER_CLIENT) {
+                PACKET_COMMANDER_PLACEMENT commander_placed;
+                commander_placed.PlayerID = PlayerID;
+                commander_placed.Tile = TileSelected;
+
+                ENetPacket* commander_placed_packet = enet_packet_create(&commander_placed, sizeof(commander_placed), ENET_PACKET_FLAG_RELIABLE);
+                enet_peer_send(Peer, 0, commander_placed_packet);
             }
         }
         else if(Checkbox == 2) {
@@ -938,12 +958,13 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                     Health = DrawTroopHealth(Troops[FromTileSelected - 1][i].health, Troops[FromTileSelected - 1][i].type, Low_health, Medium_health, High_health, Full_health);
                     DrawTexture(Health, ((i % 2) * 110 + 14), (i / 2) * 110 + 92, WHITE);
                 }
-                DrawText(TextFormat("%d", i), ((i % 2) * 110 + 90), (i / 2) * 110 + 14, 25, BLACK);
-                TempKey = GetKeyPressed() - 47;
-                if(TempKey >= 1 && TempKey <= 10) {
-                    Key = TempKey;
+                if(MovingTroops.find(i) != MovingTroops.end()) {
+                    DrawTick(Tick,((i % 2) * 110 + 10), (i / 2) * 110 + 10);
                 }
-                if(Checkbox == 1 && !(MovingTroop.type == 'n')) {
+                DrawText(TextFormat("%d", i), ((i % 2) * 110 + 90), (i / 2) * 110 + 14, 25, BLACK);
+                DrawCheckboxes();
+                Checkbox = ControlCheckboxes();
+                if(Checkbox == 1 && MovingTroops.size() > 0) {
                     TroopChosen = 1;
                     Checkbox = 0;
                     TileSelected = 0;
@@ -960,14 +981,18 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                     PressedKeyM = 0;
                     PressedKeyP = 0;
                     PressedKeyC = 0;
+                    MovingTroops.clear();
                     return;
                 }
-                DrawCheckboxes();
-                Checkbox = ControlCheckboxes();
-            }
-            if(Key > 0 && Key < 11) {
-                DrawTexture(Tick, ((Key - 1) % 2) * 110 + 10, ((Key - 1) / 2) * 110 + 10, WHITE);
-                MovingTroop = Troops[FromTileSelected - 1][Key - 1];
+                TempKey = GetKeyPressed() - 47;
+                if(TempKey >= 1 && TempKey <= 10) {
+                    Key = TempKey;
+                }
+                if(Key > 0 && Key < 11) {
+                    if(MovingTroops[Key - 1].type != (Troops[FromTileSelected - 1][Key - 1]).type) MovingTroops[Key - 1] = (Troops[FromTileSelected - 1][Key - 1]);
+                    else MovingTroops.erase(Key - 1);
+                    Key = 0;
+                }
             }
             for(int i = 0; i < 2; ++i) {
                 TempDraw = DrawBuildingIcon(Buildings[FromTileSelected - 1][i].type, Empty_Icon);
@@ -975,13 +1000,16 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
             }
         }
         else {
-            if(MovingTroop.side != Players[Round % PlayerCount].color) {
-                cout << "You can't move an enemy troop" << endl;
-                TroopChosen = 0;
-            }
-            else if(MovingTroop.side == 'e') {
-                cout << "That slot is empty_troop!" << endl;
-                TroopChosen = 0;
+            for(auto i : MovingTroops) {
+                if(i.second.side != Players[Round % PlayerCount].color) {
+                    cout << "You can't move (an) enemy troop(s)" << endl;
+                    TroopChosen = 0;
+                }
+                else if(i.second.side == 'e') {
+                    cout << "You chose (an) empty slot(s)" << endl;
+                    TroopChosen = 0;
+                    break;
+                }
             }
             if(TroopChosen) {
                 IsTileOkay = 0;
@@ -991,6 +1019,7 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                 DrawCheckboxes();
                 Checkbox = ControlCheckboxes();
                 if(Checkbox == 1) {
+                    int EmptySlots = 0;
                     ToTileSelected = TileSelected;
                     if(ToTileSelected) {
                         for(auto i : Tiles[ToTileSelected - 1]) {
@@ -1004,36 +1033,46 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                             if(Troops[ToTileSelected - 1][i].side == Players[Round % PlayerCount].color) {
                                 TroopCount++;
                             }
+                            if(Troops[ToTileSelected - 1][i].side == 'e') {
+                                EmptySlots++;
+                            }
                         }
-                        if(TroopCount >= 5) {
+                        if(TroopCount + MovingTroops.size() > 5 || EmptySlots < MovingTroops.size()) {
                             IsTileOkay = 0;
                         }
                     }
                     if(IsTileOkay) {
                         for(int i = 0; i < 10; ++i) {
                             if(Troops[ToTileSelected - 1][i].type == 'e') {
-                                Troops[FromTileSelected - 1][Key - 1] = empty_troop;
-                                Troops[ToTileSelected - 1][i] = MovingTroop;
-                                Round++;
-                                ToTileSelected = 0;
-                                IsTileOkay = 1;
-                                Checkbox = 0;
-                                FromTileSelected = 0;
-                                TileSelected = 0;
-                                TroopChosen = 0;
-                                Action = 0;
-                                MovingTroop.type = 'n';
-                                Key = 0;
-                                Checkbox = 0;
-                                PressedKeyM = 0;
-                                PressedKeyP = 0;
-                                PressedKeyC = 0;
-                                return;
+                                for(auto j : MovingTroops) {
+                                    for(int k = 0; k < 10; ++k) {
+                                        if(j.second.type == Troops[FromTileSelected - 1][k].type && j.second.side == Troops[FromTileSelected - 1][k].side && j.second.health == Troops[FromTileSelected - 1][k].health) {
+                                            Troops[FromTileSelected - 1][k] = empty_troop;
+                                            break;
+                                        }
+                                    }
+                                    Troops[ToTileSelected - 1][i] = j.second;
+                                    MovingTroops.erase(j.first);
+                                    break;
+                                }
                             }
                         }
-                        IsTileOkay = 0;
-                        cout << "Tile is full" << endl;
+                        Round++;
+                        ToTileSelected = 0;
+                        IsTileOkay = 1;
                         Checkbox = 0;
+                        FromTileSelected = 0;
+                        TileSelected = 0;
+                        TroopChosen = 0;
+                        Action = 0;
+                        MovingTroop.type = 'n';
+                        Key = 0;
+                        Checkbox = 0;
+                        PressedKeyM = 0;
+                        PressedKeyP = 0;
+                        PressedKeyC = 0;
+                        MovingTroops.clear();
+                        return;
                     }
                     else {
                         cout << "You can't move troops more or less than 1 tile" << endl;
@@ -1286,8 +1325,21 @@ void DrawActions() {
         }
         else if(Checkbox == 1) {
             if(BoughtTroop != 0) {
-                if (PlayerCurrent == PLAYER_HOTSEAT) AddBoughtTroopToTheTroopBank(BoughtTroop, Round % PlayerCount);
-                else if(PlayerCurrent >= PLAYER_CLIENT); // server;
+                if (PlayerCurrent == PLAYER_HOTSEAT || PlayerCurrent == PLAYER_HOST)  {
+                    AddBoughtTroopToTheTroopBank(BoughtTroop, Round % PlayerCount);
+                    if(PlayerCurrent == PLAYER_HOST) {
+                        PACKET_ROUND increase;
+                        ENetPacket* increase_packet = enet_packet_create(&increase, sizeof(increase), ENET_PACKET_FLAG_RELIABLE);
+                        enet_host_broadcast(Server, 0, increase_packet);
+                    }
+                }
+                else if(PlayerCurrent == PLAYER_CLIENT) {
+                    PACKET_BUY_TROOP buy_troop;
+                    buy_troop.PlayerID = PlayerID;
+                    buy_troop.BoughtTroop = BoughtTroop;
+                    ENetPacket* buy_troop_packet = enet_packet_create(&buy_troop, sizeof(buy_troop), ENET_PACKET_FLAG_RELIABLE);
+                    enet_peer_send(Peer, 0, buy_troop_packet);
+                }
                 Action = 0;
                 Checkbox = 0;
                 BoughtTroop = 0;
@@ -1467,8 +1519,8 @@ int main() {
     CreateMapBonds();
     InitWindow(screenWidth, screenHeight, "Nameless Strategy Game");
     LoadGameTextures();
-    ToggleBorderlessWindowed();
-    // Map and Icons
+    SetWindowState(FLAG_WINDOW_ALWAYS_RUN);
+    //ToggleBorderlessWindowed();
 
     GameplayTips[0] = "Gameplay\ntip:\nWar Points\nwill increase\nrandomly\nevery\n5 rounds";
     GameplayTips[1] = "Gameplay\ntip:\nMedic can't\nheal a\nplane";
@@ -1532,8 +1584,7 @@ int main() {
                             Join.ID = LocalPlayerCount;
                             Join.CurrentPlayerCount = LocalPlayerCount;
 
-                            ENetPacket* join_packet;
-                            enet_packet_create(&Join, sizeof(Join), ENET_PACKET_FLAG_RELIABLE);
+                            ENetPacket* join_packet = enet_packet_create(&Join, sizeof(Join), ENET_PACKET_FLAG_RELIABLE);
                             enet_peer_send(event.peer, 0, join_packet);
                         }
                         break;
@@ -1554,7 +1605,6 @@ int main() {
                                     }
                                 }
                             }
-                            cout << "Lobby updated and ID's shifted" << endl;
                         }
                         PACKET_PLAYER_DISCONNECT Disjoin;
                         Disjoin.DisconnectedID = DisconnectedID;
@@ -1564,8 +1614,38 @@ int main() {
                         break;
                     }
                     case ENET_EVENT_TYPE_RECEIVE:
+                    {
+                        Packets* type = (Packets*)event.packet->data;
+                        if(*type == PLACE_COMMANDER) {
+                            PACKET_COMMANDER_PLACEMENT* commander_placement = (PACKET_COMMANDER_PLACEMENT*)event.packet->data;
+                            int Tile = commander_placement->Tile;
+                            int ID = commander_placement->PlayerID;
+                            PACKET_COMMANDER_PLACEMENT commander_placement_success;
+                            commander_placement_success.PlayerID = ID;
+                            commander_placement_success.Tile = Tile;
+                            if(IsCommanderPlacementOkay(Tile, ID)) {
+                                ENetPacket* commander_packet = enet_packet_create(&commander_placement_success, sizeof(commander_placement_success), ENET_PACKET_FLAG_RELIABLE);
+                                enet_host_broadcast(Server, 0, commander_packet);
+                            }
+                        }
+                        if(*type == BUY_TROOP) {
+                            PACKET_BUY_TROOP* buy_troop = (PACKET_BUY_TROOP*)event.packet->data;
+                            int Bought = buy_troop->BoughtTroop;
+                            int ID = (int)(uintptr_t)event.peer->data;
+                            PACKET_BUY_TROOP buy_troop_s;
+                            buy_troop_s.BoughtTroop = Bought;
+                            buy_troop_s.PlayerID = ID;
+                            if(AddBoughtTroopToTheTroopBank(Bought, ID - 1)) {
+                                ENetPacket* buy_troop_success = enet_packet_create(&buy_troop_s, sizeof(buy_troop_s), ENET_PACKET_FLAG_RELIABLE);
+                                enet_peer_send(event.peer, 0, buy_troop_success);
+                                PACKET_ROUND increase;
+                                ENetPacket* increase_packet = enet_packet_create(&increase, sizeof(increase), ENET_PACKET_FLAG_RELIABLE);
+                                enet_host_broadcast(Server, 0, increase_packet);
+                            }
+                        }
                         enet_packet_destroy(event.packet);
                         break;
+                    }
                 }
             }
         }
@@ -1574,14 +1654,19 @@ int main() {
                 switch(event.type) {
                     case ENET_EVENT_TYPE_CONNECT:
                         cout << "Connected succesfully" << endl;
+                        InServer = 1;
                         break;
                     case ENET_EVENT_TYPE_DISCONNECT:
                         cout << "Disconnected or server denied us" << endl;
                         LocalPlay = 0;
+                        Client = nullptr;
+                        Peer = nullptr;
                         HostIP.clear();
                         PlayerCurrent = PLAYER_NONE;
+                        InServer = 0;
                         break;
                     case ENET_EVENT_TYPE_RECEIVE:
+                    {
                         Packets* type = (Packets*)event.packet->data;
                         if(*type == JOIN_RESPONSE) {
                             PACKET_PLAYER_JOIN* JoiningData = (PACKET_PLAYER_JOIN*)event.packet->data;
@@ -1601,8 +1686,74 @@ int main() {
                                 PlayerID--;
                             }
                         }
+                        if(*type == START_GAME) {
+                            GameStarted = 1;
+                            if(LocalPlayerCount >= 2) {
+                                GameStarted = true;
+                                Players.clear();
+                                Players.push_back(red);
+                                Players.push_back(blue); 
+                                PlayerCount = LocalPlayerCount;
+                            }
+                            if(LocalPlayerCount >= 3) {
+                                Players.push_back(green);
+                            }
+                            if(LocalPlayerCount >= 4) {
+                                Players.push_back(yellow);
+                            }
+                            if(LocalPlayerCount >= 5) {
+                                Players.push_back(orange);
+                            }
+                            if(LocalPlayerCount >= 6) {
+                                Players.push_back(purple);
+                            }
+                        }
+                        if(*type == PLACE_COMMANDER) {
+                            PACKET_COMMANDER_PLACEMENT* commander_placement = (PACKET_COMMANDER_PLACEMENT*)event.packet->data;
+                            int Tile = commander_placement->Tile;
+                            int ID = commander_placement->PlayerID;
+                            Troops[Tile - 1][0] = commander;
+                            Troops[Tile - 1][0].side = Players[ID - 1].color;
+                            Round++;
+                        }
+                        if(*type == BUY_TROOP) {
+                            PACKET_BUY_TROOP* buy_troop = (PACKET_BUY_TROOP*)event.packet->data;
+                            int Bought = buy_troop->BoughtTroop;
+                            int ID = buy_troop->PlayerID;
+                            for(int i = 0; i < 10; ++i) {
+                                if(Players[PlayerID - 1].TroopBank[i].type == empty_troop.type) {
+                                    switch(Bought) {
+                                        case 1:
+                                            Players[PlayerID - 1].TroopBank[i] = infantry;
+                                            Players[PlayerID - 1].TroopBank[i].side = Players[PlayerID - 1].color;
+                                            break;
+                                        case 2:
+                                            Players[PlayerID - 1].TroopBank[i] = medic;
+                                            Players[PlayerID - 1].TroopBank[i].side = Players[PlayerID - 1].color;
+                                            break;
+                                        case 3:
+                                            Players[PlayerID - 1].TroopBank[i] = artillery;
+                                            Players[PlayerID - 1].TroopBank[i].side = Players[PlayerID - 1].color;
+                                            break;
+                                        case 4:
+                                            Players[PlayerID - 1].TroopBank[i] = tank;
+                                            Players[PlayerID - 1].TroopBank[i].side = Players[PlayerID - 1].color;
+                                            break;
+                                        case 5:
+                                            Players[PlayerID - 1].TroopBank[i] = plane;
+                                            Players[PlayerID - 1].TroopBank[i].side = Players[PlayerID - 1].color;
+                                            break;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        if(*type == INCREASE_ROUND) {
+                            Round++;
+                        }
                         enet_packet_destroy(event.packet);
                         break;
+                    }
                 }
             }
         }
@@ -1617,6 +1768,7 @@ int main() {
             cout << "Server is ready" << endl;
             LocalPlayerCount = 1;
             PlayerID = 1;
+            InServer = 1;
         }
         if(PlayerCurrent == PLAYER_CLIENT && Client == nullptr) { //joining
             Client = enet_host_create(NULL, 1, 2, 0, 0);
@@ -1732,6 +1884,15 @@ int main() {
                 PlayerCount--;
             }
         }
+        if(LocalPlay && IsKeyPressed(KEY_ESCAPE)) {
+            LocalPlay = 0;
+            PlayerCurrent = PLAYER_NONE;
+            JoiningServer = 0;
+            InServer = 0;
+            Server = nullptr;
+            Client = nullptr;
+            Peer = nullptr;
+        }
         if(MouseClicked && TimePlayed >= 0.95f) { // Mouse Controls
             GetMouseCoords();
             if(GameStarted && MouseX >= MapBorderX && MouseX <= MapBorderX + Map.width && MouseY >= MapBorderY && MouseY <= MapBorderY + Map.height && !SettingsScreen && !SaveScreen && !LoadScreen) {
@@ -1765,19 +1926,44 @@ int main() {
             else if(GameStarted && MouseX >= 800 && MouseX <= 1120 && MouseY >= 600 && MouseY <= 700 && SettingsScreen) {
                 CloseTheWindow = 1;
             }
-            else if(LocalPlay && MouseX >= 200 && MouseX <= 800 && MouseY >= 400 && MouseY <= 600) {
+            else if(InServer && !GameStarted && PLAYER_HOST == PlayerCurrent && MouseX >= 200 && MouseX <= 800 && MouseY >= 400 && MouseY <= 600) {
+                if(LocalPlayerCount >= 2) {
+                    GameStarted = true;
+                    Players.clear();
+                    Players.push_back(red);
+                    Players.push_back(blue); 
+                    PACKET_START_THE_GAME GameStart;
+                    ENetPacket* start_packet = enet_packet_create(&GameStart, sizeof(GameStart), ENET_PACKET_FLAG_RELIABLE);
+                    enet_host_broadcast(Server, 0, start_packet);
+                    PlayerCount = LocalPlayerCount;
+                }
+                else {
+                    cout << "at least 2 player needed!" << endl;
+                }
+                if(LocalPlayerCount >= 3) {
+                    Players.push_back(green);
+                }
+                if(LocalPlayerCount >= 4) {
+                    Players.push_back(yellow);
+                }
+                if(LocalPlayerCount >= 5) {
+                    Players.push_back(orange);
+                }
+                if(LocalPlayerCount >= 6) {
+                    Players.push_back(purple);
+                }
+            }
+            else if(LocalPlay && !GameStarted && MouseX >= 200 && MouseX <= 800 && MouseY >= 400 && MouseY <= 600 && PlayerCurrent != PLAYER_CLIENT) {
                 PlayerCurrent = PLAYER_HOST;
             }
-            else if(LocalPlay && MouseX >= 1000 && MouseX <= 1600 && MouseY >= 400 && MouseY <= 600) {
+            else if(LocalPlay && !GameStarted && MouseX >= 1000 && MouseX <= 1600 && MouseY >= 400 && MouseY <= 600 && PlayerCurrent != PLAYER_HOST) {
                 PlayerCurrent = PLAYER_CLIENT;
-            }
-            else if(LocalPlay && IsKeyPressed(KEY_ESCAPE)) {
-                LocalPlay = 0;
             }
             else if(GameStarted == false && !CreditScreen && !HowToPlayScreen && MouseX >= 200 && MouseX <= 800 && MouseY >= 400 && MouseY <= 600 && !LocalPlay) {
                 GameStarted = true;
                 PlayerCurrent = PLAYER_HOTSEAT;
                 if(PlayerCount >= 2) {
+                    Players.clear();
                     Players.push_back(red);
                     Players.push_back(blue);
                 }
@@ -1803,15 +1989,15 @@ int main() {
                 MouseCleared = 1;
             }
         }
-        if((Round + 1) % (5 * (PlayerCount - 1)) == 0 && Round > 0) {
+        if(PlayerCount > 1 && (Round + 1) % (5 * (PlayerCount - 1)) == 0 && Round > 0) {
             IncreaseControl = 1;
         }
         else {
             IncreaseControl = 0;
             Increased = 0;
         }
-        BeginDrawing();
 
+        BeginDrawing();
             if(GameStarted && !GameShouldEnd && Round < 999 + GhostRounds && !SaveScreen && !LoadScreen && !SettingsScreen) { // Game Started
                 if(PlayWithABot && Round % 2) {
                     // BotMove();
@@ -1829,16 +2015,18 @@ int main() {
                     DrawTurn(WarPoint);
                     DrawRound(screenWidth - MapBorderX, screenHeight);
                 }
-                else if(Round % PlayerCount == PlayerID && PlayerCurrent >= PLAYER_CLIENT) {
+                else if(Round % PlayerCount == (PlayerID - 1) && PlayerCurrent >= PLAYER_CLIENT) {
                     DrawActions();
                     DrawTurn(WarPoint);
                     DrawRound(screenWidth - MapBorderX, screenHeight);     
                 }
-                else if(PlayerCurrent >= PLAYER_CLIENT && Players[PlayerID].CommanderAvalible) {
+                else if(PlayerCurrent >= PLAYER_CLIENT && Players[PlayerID - 1].CommanderAvalible) {
                     DrawText("Wait for\nyour turn!", 10, 10, 60, RED);
+                    DrawRound(screenWidth - MapBorderX, screenHeight); 
                 }
                 else if(PlayerCurrent >= PLAYER_CLIENT) {
                     DrawText("You are out!", 10, 10, 50, RED);
+                    DrawRound(screenWidth - MapBorderX, screenHeight); 
                 }
             }
             else if(SettingsScreen && GameStarted) {
@@ -1879,7 +2067,7 @@ int main() {
                 GameLoadScreen(Tick, TrashBin);
                 LastRound = Round;
             }
-            else if (!GameShouldEnd && Round < 999 + GhostRounds) { // Title screen
+            else if (!GameStarted && !GameShouldEnd && Round < 999 + GhostRounds) { // Title screen
                 ClearBackground(WHITE);
                 if(TimePlayed < 0.95f) DrawLogoScreen(Logo);
                 else if(CreditScreen) DrawCreditsandChangelogScreen();

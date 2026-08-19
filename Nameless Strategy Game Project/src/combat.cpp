@@ -28,13 +28,19 @@ void Combat() {
         TroopCounts['y'] = 0;
         TroopCounts['o'] = 0;
         TroopCounts['p'] = 0;
+        float TeamCount = 0;
         for(int j = 0; j < 10; ++j) {
             if(Troops[i][j].side != 'e' && Troops[i][j].type != 'c') {
                 TroopCounts[Troops[i][j].side]++;
                 TotalTroops++;
             }
         }
-        if(!TotalTroops) {
+        for(auto j : TroopCounts) {
+            if(j.second != 0) {
+                TeamCount++;
+            }
+        }
+        if(!TotalTroops || TeamCount < 2) {
             continue;
         }
         char Building1 = Buildings[i][0].WhoBuiltIt;
@@ -80,9 +86,9 @@ void Combat() {
             }
             for(int k = 0; k < 10; ++k) {
                 if(Troops[i][k].side != Players[j].color) {
-                    Attack += Troops[i][k].attack / (TotalTroops - TroopCounts[Troops[i][k].side]);
-                    Air += Troops[i][k].air_attack / (TotalTroops - TroopCounts[Troops[i][k].side]);
-                    if(CommanderHere && (Attack || Air) && TroopCounts[Players[j].color] == 0) {
+                    Attack += Troops[i][k].attack / (TeamCount - 1);
+                    Air += Troops[i][k].air_attack / (TeamCount - 1);
+                    if(CommanderHere && Attack && TroopCounts[Players[j].color] == 0) {
                         Players[j].CommanderAvalible = 0;
                         Troops[i][slot] = empty_troop;
                         break;
@@ -185,7 +191,7 @@ void Combat() {
                     Air = 0;
                 }
             }
-            if(CommanderHere && (TakenDamage || Air)) {
+            if(CommanderHere && TakenDamage) {
                 Players[j].CommanderAvalible = 0;
                 Troops[i][Slot] = empty_troop;
             }

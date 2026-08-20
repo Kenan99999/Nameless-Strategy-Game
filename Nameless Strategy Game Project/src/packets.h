@@ -44,3 +44,11 @@ struct PACKET_BUY_TROOP {
 struct PACKET_ROUND {
     Packets type = INCREASE_ROUND;
 };
+
+struct PACKET_PLACE_TROOP {
+    Packets type = PLACE_TROOP;
+    int Tile;
+    int ID;
+    int Slot;
+    troop Troop;
+};

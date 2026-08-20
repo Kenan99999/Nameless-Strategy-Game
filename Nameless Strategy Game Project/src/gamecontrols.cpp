@@ -18,7 +18,7 @@ bool IsCommanderPlacementOkay(int Tile, int PlayerID) {
 
 bool IsPlacementOkay(int Tile, int PlayerID) {
     int TroopCount = 0;
-    int EmptyCounter = 0;
+    EmptyCounter = 0;
     int IsCommanderHere = 0;
     int IsTileOkay = 1;
     for(int i = 0; i < 10; ++i) {
@@ -55,8 +55,6 @@ bool IsPlacementOkay(int Tile, int PlayerID) {
         Checkbox = 0;
         TempKey = 0;
         TroopChosen = 0;
-        Key = 0;
-        TileSelected = 0;
         return true;
     }
     else {

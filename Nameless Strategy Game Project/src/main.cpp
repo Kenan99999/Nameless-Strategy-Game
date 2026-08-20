@@ -853,6 +853,8 @@ void CommanderPlacement() {
                     
                     ENetPacket* commander_placed_packet = enet_packet_create(&commander_placed, sizeof(commander_placed), ENET_PACKET_FLAG_RELIABLE);
                     enet_host_broadcast(Server, 0, commander_placed_packet);
+                    Action = 0;
+                    TileSelected = 0;
                 }
             }
             else if(PlayerCurrent == PLAYER_CLIENT) {
@@ -893,11 +895,30 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
             ChangeTileSelected();
             DrawTileSelected();
             if(Checkbox == 1 && TileSelected != 0) {
-                if(PlayerCurrent == PLAYER_HOTSEAT) {
-                    IsPlacementOkay(TileSelected, Round % PlayerCount);
+                if(PlayerCurrent != PLAYER_CLIENT) {
+                    bool okay = IsPlacementOkay(TileSelected, Round % PlayerCount);
+                    if(PlayerCurrent == PLAYER_HOST && okay) {
+                        PACKET_PLACE_TROOP placement;
+                        placement.Tile = TileSelected;
+                        placement.ID = 1;
+                        placement.Slot = EmptyCounter - 1;
+                        placement.Troop = SelectedTroop;
+                        ENetPacket* placement_packet = enet_packet_create(&placement, sizeof(placement), ENET_PACKET_FLAG_RELIABLE);
+                        enet_host_broadcast(Server, 0, placement_packet);
+                    }
+                    if(okay) {
+                        Key = 0;
+                        TileSelected = 0;
+                    }
                 }
-                else if(PlayerCurrent >= PLAYER_CLIENT) {
-                    // server packet
+                else if(PlayerCurrent == PLAYER_CLIENT) {
+                    PACKET_PLACE_TROOP placement;
+                    placement.Tile = TileSelected;
+                    placement.ID = PlayerID;
+                    placement.Slot = EmptyCounter - 1;
+                    placement.Troop = SelectedTroop;
+                    ENetPacket* placement_packet = enet_packet_create(&placement, sizeof(placement), ENET_PACKET_FLAG_RELIABLE);
+                    enet_peer_send(Peer, 0, placement_packet);
                 }
             }
         }
@@ -1347,7 +1368,18 @@ void DrawActions() {
                 PressedKeyM = 0;
             }
             else {
-                Round++;
+                if(PlayerCurrent == PLAYER_HOTSEAT) {
+                    Round++;
+                }
+                else if(PlayerCurrent == PLAYER_HOST) {
+                    Round++;
+                    PACKET_ROUND increase;
+                    ENetPacket* increase_packet = enet_packet_create(&increase, sizeof(increase), ENET_PACKET_FLAG_RELIABLE);
+                    enet_host_broadcast(Server, 0, increase_packet);
+                }
+                else if(PlayerCurrent == PLAYER_CLIENT) {
+
+                }
                 Action = 0;
                 Checkbox = 0;
                 BoughtTroop = 0;
@@ -1643,6 +1675,23 @@ int main() {
                                 enet_host_broadcast(Server, 0, increase_packet);
                             }
                         }
+                        if(*type == PLACE_TROOP) {
+                            PACKET_PLACE_TROOP* place = (PACKET_PLACE_TROOP*)event.packet->data;
+                            int Tile = place->Tile;
+                            int ID = (int)(uintptr_t)event.peer->data;
+                            int Slot = place->Slot;
+                            troop Troop = place->Troop;
+                            PACKET_PLACE_TROOP place_success;
+                            place_success.ID = ID;
+                            place_success.Tile = Tile;
+                            place_success.Troop = Troop;
+                            Key = Slot + 1;
+                            if(IsPlacementOkay(Tile, ID - 1)) {
+                                place_success.Slot = EmptyCounter;
+                                ENetPacket* place_packet = enet_packet_create(&place_success, sizeof(place_success), ENET_PACKET_FLAG_RELIABLE);
+                                enet_host_broadcast(Server, 0, place_packet);
+                            }
+                        }
                         enet_packet_destroy(event.packet);
                         break;
                     }
@@ -1714,6 +1763,8 @@ int main() {
                             int ID = commander_placement->PlayerID;
                             Troops[Tile - 1][0] = commander;
                             Troops[Tile - 1][0].side = Players[ID - 1].color;
+                            Action = 0;
+                            TileSelected = 0;
                             Round++;
                         }
                         if(*type == BUY_TROOP) {
@@ -1746,7 +1797,24 @@ int main() {
                                     }
                                     break;
                                 }
+                                Action = 0;
+                                TileSelected = 0;
                             }
+                        }
+                        if(*type == PLACE_TROOP) {
+                            PACKET_PLACE_TROOP* place = (PACKET_PLACE_TROOP*)event.packet->data;
+                            int Tile = place->Tile;
+                            int ID = place->ID;
+                            int Slot = place->Slot;
+                            troop Troop = place->Troop;
+                            Troops[Tile - 1][Slot] = Troop;
+                            Troops[Tile - 1][Slot].side = Players[ID - 1].color;
+                            cout << Troop.type << " " << Troop.side << " " << Tile - 1 << " " << Slot << endl;
+                            Action = 0;
+                            TileSelected = 0;
+                            Key = 0;
+                            TileSelected = 0;
+                            Round++;
                         }
                         if(*type == INCREASE_ROUND) {
                             Round++;
@@ -1998,7 +2066,7 @@ int main() {
         }
 
         BeginDrawing();
-            if(GameStarted && !GameShouldEnd && Round < 999 + GhostRounds && !SaveScreen && !LoadScreen && !SettingsScreen) { // Game Started
+            if(GameStarted && !GameShouldEnd && Round < 9999 + GhostRounds && !SaveScreen && !LoadScreen && !SettingsScreen) { // Game Started
                 if(PlayWithABot && Round % 2) {
                     // BotMove();
                 }
@@ -2057,17 +2125,17 @@ int main() {
                     ShowTroopsWhenZoomed -= 0.1f;
                 }
             }
-            else if(SaveScreen && Round < 999 + GhostRounds) {
+            else if(SaveScreen && Round < 9999 + GhostRounds) {
                 ClearBackground(WHITE);
                 GameSave();
                 Saves();
             }
-            else if(LoadScreen && Round < 999 + GhostRounds) {
+            else if(LoadScreen && Round < 9999 + GhostRounds) {
                 ClearBackground(WHITE);
                 GameLoadScreen(Tick, TrashBin);
                 LastRound = Round;
             }
-            else if (!GameStarted && !GameShouldEnd && Round < 999 + GhostRounds) { // Title screen
+            else if (!GameStarted && !GameShouldEnd && Round < 9999 + GhostRounds) { // Title screen
                 ClearBackground(WHITE);
                 if(TimePlayed < 0.95f) DrawLogoScreen(Logo);
                 else if(CreditScreen) DrawCreditsandChangelogScreen();
@@ -2075,7 +2143,7 @@ int main() {
                 else if(!LocalPlay) DrawTitleScreen(Logo);
                 else DrawServerScreen();
             }
-            else if(GameShouldEnd && Round < 999 + GhostRounds) {
+            else if(GameShouldEnd && Round < 9999 + GhostRounds) {
                 if(GameDraw) {
                     ClearBackground(GRAY);
                     DrawText("DRAW!", 800, 400, 100, BLACK);
@@ -2142,7 +2210,7 @@ int main() {
             }
             else {
                 ClearBackground(GRAY);
-                DrawText("DRAW!\n(Because reached round 1000)", 800, 400, 100, BLACK);
+                DrawText("DRAW!\n(Because reached round 10000)", 800, 400, 100, BLACK);
                 DrawText("Click anywhere to restart", 700, 800, 50, BLACK);
                 if(MouseClicked) {
                     Restarted = 1;

@@ -152,3 +152,67 @@ void DeleteEliminatedTroops(int PlayerCount) {
     }
 }
 
+bool IsMovingOkay (int FromTileSelected, int ToTileSelected, int PlayerID) {
+                    IsTileOkay = 0;
+                    int TroopCount = 0;
+                    int EmptySlots = 0;
+                    if(ToTileSelected) {
+                        for(auto i : Tiles[ToTileSelected - 1]) {
+                            if(i == FromTileSelected - 1) {
+                                cout << i << " "  << FromTileSelected - 1 << endl;
+                                IsTileOkay = 1;
+                                break;
+                            }
+                        }
+                        for(int i = 0; i < 10; ++i) {
+                            if(Troops[ToTileSelected - 1][i].side == Players[PlayerID].color) {
+                                TroopCount++;
+                            }
+                            if(Troops[ToTileSelected - 1][i].side == 'e') {
+                                EmptySlots++;
+                            }
+                        }
+                        if(TroopCount + MovingTroops.size() > 5 || EmptySlots < MovingTroops.size()) {
+                            IsTileOkay = 0;
+                        }
+                    }
+                    if(IsTileOkay) {
+                        for(int i = 0; i < 10; ++i) {
+                            if(Troops[ToTileSelected - 1][i].type == 'e') {
+                                for(auto j : MovingTroops) {
+                                    for(int k = 0; k < 10; ++k) {
+                                        if(j.second.type == Troops[FromTileSelected - 1][k].type && j.second.side == Troops[FromTileSelected - 1][k].side && j.second.health == Troops[FromTileSelected - 1][k].health) {
+                                            Troops[FromTileSelected - 1][k] = empty_troop;
+                                            break;
+                                        }
+                                    }
+                                    Troops[ToTileSelected - 1][i] = j.second;
+                                    MovingTroopsCopy[j.first] = j.second;
+                                    MovingTroops.erase(j.first);
+                                    break;
+                                }
+                            }
+                        }
+                        Round++;
+                        ToTileSelected = 0;
+                        IsTileOkay = 1;
+                        Checkbox = 0;
+                        FromTileSelected = 0;
+                        TileSelected = 0;
+                        TroopChosen = 0;
+                        Action = 0;
+                        MovingTroop.type = 'n';
+                        Key = 0;
+                        Checkbox = 0;
+                        PressedKeyM = 0;
+                        PressedKeyP = 0;
+                        PressedKeyC = 0;
+                        MovingTroops.clear();
+                        return true;
+                    }
+                    else {
+                        cout << "You can't move troops more or less than 1 tile" << endl;
+                        Checkbox = 0;
+                        return false;
+                    }
+}

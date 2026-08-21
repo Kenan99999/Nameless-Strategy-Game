@@ -27,3 +27,5 @@ bool IsPlacementOkay(int Tile, int PlayerID);
 bool AddBoughtTroopToTheTroopBank(int Troop, int PlayerID);
 
 void DeleteEliminatedTroops(int PlayerCount);
+
+bool IsMovingOkay(int FromTileSelected, int ToTileSelected, int PlayerID);

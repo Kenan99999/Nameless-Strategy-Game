@@ -368,4 +368,5 @@ inline ENetHost* Client = nullptr;
 inline ENetPeer* Peer = nullptr;
 inline int LocalPlayerCount = 0;
 inline map<int, troop> MovingTroops;
+inline map<int, troop> MovingTroopsCopy;
 inline vector<int> Ticks;

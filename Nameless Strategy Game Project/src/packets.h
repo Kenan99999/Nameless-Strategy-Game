@@ -52,3 +52,11 @@ struct PACKET_PLACE_TROOP {
     int Slot;
     troop Troop;
 };
+
+struct PACKET_MOVE_TROOP {
+    Packets type = MOVE_TROOP;
+    int FromTile;
+    int ToTile;
+    map<int, troop> Moving;
+    int ID;
+};

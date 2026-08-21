@@ -915,7 +915,7 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                     PACKET_PLACE_TROOP placement;
                     placement.Tile = TileSelected;
                     placement.ID = PlayerID;
-                    placement.Slot = EmptyCounter - 1;
+                    placement.Slot = 0;
                     placement.Troop = SelectedTroop;
                     ENetPacket* placement_packet = enet_packet_create(&placement, sizeof(placement), ENET_PACKET_FLAG_RELIABLE);
                     enet_peer_send(Peer, 0, placement_packet);
@@ -1010,7 +1010,8 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                     Key = TempKey;
                 }
                 if(Key > 0 && Key < 11) {
-                    if(MovingTroops[Key - 1].type != (Troops[FromTileSelected - 1][Key - 1]).type) MovingTroops[Key - 1] = (Troops[FromTileSelected - 1][Key - 1]);
+                    if(MovingTroops[Key - 1].type != (Troops[FromTileSelected - 1][Key - 1]).type && MovingTroops.size() < 5) MovingTroops[Key - 1] = (Troops[FromTileSelected - 1][Key - 1]);
+                    else if(MovingTroops.size() >= 5) cout << "you can't move more than 5 troops!" << endl;
                     else MovingTroops.erase(Key - 1);
                     Key = 0;
                 }
@@ -1033,72 +1034,43 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                 }
             }
             if(TroopChosen) {
-                IsTileOkay = 0;
-                int TroopCount = 0;
                 DrawTileSelected();
                 ChangeTileSelected();
                 DrawCheckboxes();
                 Checkbox = ControlCheckboxes();
                 if(Checkbox == 1) {
-                    int EmptySlots = 0;
                     ToTileSelected = TileSelected;
-                    if(ToTileSelected) {
-                        for(auto i : Tiles[ToTileSelected - 1]) {
-                            if(i == FromTileSelected - 1) {
-                                cout << i << " "  << FromTileSelected - 1 << endl;
-                                IsTileOkay = 1;
-                                break;
+                    if(PlayerCurrent == PLAYER_HOTSEAT) {
+                        IsMovingOkay(FromTileSelected, ToTileSelected, Round % PlayerCount);
+                    }
+                    if(PlayerCurrent == PLAYER_HOST) {
+                        if(IsMovingOkay(FromTileSelected, ToTileSelected, PlayerID - 1)) {
+                            PACKET_MOVE_TROOP moving;
+                            moving.FromTile = FromTileSelected;
+                            moving.ToTile = ToTileSelected;
+                            moving.ID = PlayerID;
+                            cout << "From: " << FromTileSelected << "To: " << ToTileSelected << endl; 
+                            for(auto i : MovingTroopsCopy) {
+                                moving.Moving[i.first] = i.second;
+                                cout << "Troop: " << i.second.type << "Slot: " << i.first << endl;
                             }
-                        }
-                        for(int i = 0; i < 10; ++i) {
-                            if(Troops[ToTileSelected - 1][i].side == Players[Round % PlayerCount].color) {
-                                TroopCount++;
-                            }
-                            if(Troops[ToTileSelected - 1][i].side == 'e') {
-                                EmptySlots++;
-                            }
-                        }
-                        if(TroopCount + MovingTroops.size() > 5 || EmptySlots < MovingTroops.size()) {
-                            IsTileOkay = 0;
+                            ENetPacket* move_packet = enet_packet_create(&moving, sizeof(moving), ENET_PACKET_FLAG_RELIABLE);
+                            enet_host_broadcast(Server, 0, move_packet);
                         }
                     }
-                    if(IsTileOkay) {
-                        for(int i = 0; i < 10; ++i) {
-                            if(Troops[ToTileSelected - 1][i].type == 'e') {
-                                for(auto j : MovingTroops) {
-                                    for(int k = 0; k < 10; ++k) {
-                                        if(j.second.type == Troops[FromTileSelected - 1][k].type && j.second.side == Troops[FromTileSelected - 1][k].side && j.second.health == Troops[FromTileSelected - 1][k].health) {
-                                            Troops[FromTileSelected - 1][k] = empty_troop;
-                                            break;
-                                        }
-                                    }
-                                    Troops[ToTileSelected - 1][i] = j.second;
-                                    MovingTroops.erase(j.first);
-                                    break;
-                                }
-                            }
+                    if(PlayerCurrent == PLAYER_CLIENT) {
+                        PACKET_MOVE_TROOP moving;
+                        moving.FromTile = FromTileSelected;
+                        moving.ToTile = ToTileSelected;
+                        moving.ID = PlayerID;
+                        for(auto i : MovingTroops) {
+                            moving.Moving[i.first] = i.second;
                         }
-                        Round++;
-                        ToTileSelected = 0;
-                        IsTileOkay = 1;
-                        Checkbox = 0;
-                        FromTileSelected = 0;
-                        TileSelected = 0;
-                        TroopChosen = 0;
-                        Action = 0;
-                        MovingTroop.type = 'n';
-                        Key = 0;
-                        Checkbox = 0;
-                        PressedKeyM = 0;
-                        PressedKeyP = 0;
-                        PressedKeyC = 0;
-                        MovingTroops.clear();
-                        return;
+                        ENetPacket* move_packet = enet_packet_create(&moving, sizeof(moving), ENET_PACKET_FLAG_RELIABLE);
+                        enet_peer_send(Peer, 0, move_packet);   
                     }
-                    else {
-                        cout << "You can't move troops more or less than 1 tile" << endl;
-                        Checkbox = 0;
-                    }
+                    MovingTroops.clear();
+                    MovingTroopsCopy.clear();
                 }
                 else if(Checkbox == 2) {
                     ToTileSelected = 0;
@@ -1692,6 +1664,28 @@ int main() {
                                 enet_host_broadcast(Server, 0, place_packet);
                             }
                         }
+                        if(*type == MOVE_TROOP) {
+                            PACKET_MOVE_TROOP* moving = (PACKET_MOVE_TROOP*)event.packet->data;
+                            int FromTile = moving->FromTile;
+                            int ToTile = moving->ToTile;
+                            int ID = (int)(uintptr_t)event.peer->data;
+                            for(auto i : moving->Moving) {
+                                MovingTroops[i.first] = i.second;
+                            }
+                            if(IsMovingOkay(FromTile, ToTile, ID - 1)) {
+                                PACKET_MOVE_TROOP moving_s;
+                                moving_s.FromTile = FromTile;
+                                moving_s.ToTile = ToTile;
+                                moving_s.ID = ID;
+                                for(auto i : MovingTroopsCopy) {
+                                    moving_s.Moving[i.first] = i.second;
+                                }
+                                ENetPacket* move_packet = enet_packet_create(&moving_s, sizeof(moving_s), ENET_PACKET_FLAG_RELIABLE);
+                                enet_host_broadcast(Server, 0, move_packet);
+                            }
+                            MovingTroops.clear();
+                            MovingTroopsCopy.clear();
+                        }
                         enet_packet_destroy(event.packet);
                         break;
                     }
@@ -1814,6 +1808,24 @@ int main() {
                             TileSelected = 0;
                             Key = 0;
                             TileSelected = 0;
+                            Round++;
+                        }
+                        if(*type == MOVE_TROOP) {
+                            PACKET_MOVE_TROOP* moving = (PACKET_MOVE_TROOP*)event.packet->data;
+                            int FromTile = moving->FromTile;
+                            int ToTile = moving->ToTile;
+                            int ID = moving->ID;
+                            cout << "From: " << FromTile << "To: " << ToTile << endl;
+                            for(auto i : moving->Moving) {
+                                cout << "Troop: " << i.second.type << "Slot: " << i.first << endl;
+                                for(int j = 0; j < 10; ++j) {
+                                    if(Troops[ToTile - 1][j].type == 'e') {
+                                        Troops[ToTile - 1][j] = Troops[FromTile - 1][i.first];
+                                        break;
+                                    }
+                                }
+                                Troops[FromTile - 1][i.first] = empty_troop;
+                            }
                             Round++;
                         }
                         if(*type == INCREASE_ROUND) {

@@ -12,7 +12,7 @@ void GetMouseCoords();
 
 void IncreaseWarPoints();
 
-void Combat();
+void Combat(int PlayerCurrent);
 
 void ClearMouseCoords();
 
@@ -29,3 +29,7 @@ bool AddBoughtTroopToTheTroopBank(int Troop, int PlayerID);
 void DeleteEliminatedTroops(int PlayerCount);
 
 bool IsMovingOkay(int FromTileSelected, int ToTileSelected, int PlayerID);
+
+void DeleteEliminatedTroops();
+
+bool DeleteTheTroop(int PlayerID, int Tile, int Slot);

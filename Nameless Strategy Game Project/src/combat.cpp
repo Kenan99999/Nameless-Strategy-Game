@@ -1,12 +1,26 @@
+#define WIN32_LEAN_AND_MEAN
+#define NOGDI
+#define NOUSER
+#include <raylib.h>
 #include <bits/stdc++.h>
-#include "functions.h"
+#include <enet/enet.h>
 #include "globals.h"
+#include "functions.h"
+#include "packets.h"
+struct tagMSG;
+typedef struct tagMSG *LPMSG;
+
 using namespace std;
-void Combat() {
+using namespace filesystem;
+void Combat(int PlayerCurrent) {
+    int combatindex = 0;
+    PACKET_COMBAT combat;
     for(int i = 0; i < 47; ++i) {
         char WhoWillUseTheBuilding1 = 'n';
         char WhoWillUseTheBuilding2 = 'n';
         int TotalTroops = 0;
+        bool Situation = 0;
+        char s;
         map<char, int> TakenDamages;
         TakenDamages['r'] = 0;
         TakenDamages['b'] = 0;
@@ -29,7 +43,9 @@ void Combat() {
         TroopCounts['o'] = 0;
         TroopCounts['p'] = 0;
         float TeamCount = 0;
+        troop TileOld[10];
         for(int j = 0; j < 10; ++j) {
+            TileOld[j] = Troops[i][j];
             if(Troops[i][j].side != 'e' && Troops[i][j].type != 'c') {
                 TroopCounts[Troops[i][j].side]++;
                 TotalTroops++;
@@ -47,17 +63,26 @@ void Combat() {
         char Building2 = Buildings[i][1].WhoBuiltIt;
         int maxx = 0;
         for(auto j : TroopCounts) {
+            if(j.second > Situation) {
+                Situation = j.first;
+                s = j.first;
+            }
+            else if(j.second == Situation) {
+                s = 'n';
+            }
             if((j.second > maxx || (j.second >= maxx && j.first == Building1)) && Buildings[i][0].type != 'e') {
                 WhoWillUseTheBuilding1 = j.first;
+                maxx = j.first;
             }
             else if(j.second == maxx) {
                 WhoWillUseTheBuilding1 = 'n';
             }
             if((j.second > maxx  || (j.second >= maxx && j.first == Building2)) && Buildings[i][1].type != 'e') {
                 WhoWillUseTheBuilding2 = j.first;
+                maxx = j.first;
             }
             else if(j.second == maxx) {
-                WhoWillUseTheBuilding1 = 'n';
+                WhoWillUseTheBuilding2 = 'n';
             }
         }
         for(int j = 0; j < PlayerCount; ++j) {
@@ -90,7 +115,7 @@ void Combat() {
                     Air += Troops[i][k].air_attack / (TeamCount - 1);
                     if(CommanderHere && Attack && TroopCounts[Players[j].color] == 0) {
                         Players[j].CommanderAvalible = 0;
-                        Troops[i][slot] = empty_troop;
+                        DeleteEliminatedTroops();
                         break;
                     }
                 }
@@ -112,20 +137,20 @@ void Combat() {
                 Repair += Buildings[i][1].Repair;
                 Heal += Buildings[i][1].Heal;
             }
-            if(Terrain[i] == "bridge") {
+            if(Terrain[i] == "bridge" && s == Players[j].color) {
                 Defense *= 1.5;
             }
-            if(Terrain[i] == "forest") {
+            if(Terrain[i] == "forest" && s != Players[j].color) {
                 Attack *= 0.8;
             }
-            if(Terrain[i] == "city") {
+            if(Terrain[i] == "city" && s == Players[j].color) {
                 Defense *= 1.25;
             }
             if(Terrain[i] == "mountains") {
-                Defense *= 1.5;
-                Attack *= 0.7;
+                if( s == Players[j].color ) Defense *= 1.5;
+                else Attack *= 0.7;
             }
-            if(Terrain[i] == "plains") {
+            if(Terrain[i] == "plains" && s == Players[j].color) {
                 Defense *= 0.8;
             }
             if(Attack / 3 >= 1) Attack += rand() % int(Attack / 3);
@@ -193,9 +218,25 @@ void Combat() {
             }
             if(CommanderHere && TakenDamage) {
                 Players[j].CommanderAvalible = 0;
-                Troops[i][Slot] = empty_troop;
+                DeleteEliminatedTroops();
             }
         }
+        for(int j = 0; j < 10; ++j) {
+            if(Troops[i][j].health != TileOld[j].health) {
+                combat.NewTroopHealths[combatindex].first.first = i;
+                combat.NewTroopHealths[combatindex].first.second = j;
+                combat.NewTroopHealths[combatindex].second = Troops[i][j].health;
+                combatindex++;
+            }
+        }
+    }
+    for(int j = 0; j < PlayerCount; ++j) {
+        combat.CommanderAvalibility[j] = Players[j].CommanderAvalible;
+    }
+    combat.index = combatindex;
+    if(PlayerCurrent == 2) {
+        ENetPacket* combat_packet = enet_packet_create(&combat, sizeof(combat), ENET_PACKET_FLAG_RELIABLE);
+        enet_host_broadcast(Server, 0, combat_packet);
     }
     CombatHappened = 1;
     return;

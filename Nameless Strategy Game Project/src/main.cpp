@@ -580,7 +580,6 @@ Texture2D DrawTroopIcon(char type, Texture2D Infantry_Icon, Texture2D Medic_Icon
         default:
             break;
     }
-    cout << "ERROR" << endl;
     return Empty_Icon;
 }
 Texture2D DrawSide(char Side, Texture2D Red_Icon, Texture2D Blue_Icon) {
@@ -1049,10 +1048,13 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                             moving.FromTile = FromTileSelected;
                             moving.ToTile = ToTileSelected;
                             moving.ID = PlayerID;
-                            cout << "From: " << FromTileSelected << "To: " << ToTileSelected << endl; 
+                            int index = 0; 
+                            for(int i = 0; i < 5; ++i) {
+                                moving.Moving[i].second.type = 'e';
+                            }
                             for(auto i : MovingTroopsCopy) {
-                                moving.Moving[i.first] = i.second;
-                                cout << "Troop: " << i.second.type << "Slot: " << i.first << endl;
+                                moving.Moving[index] = {i.first, i.second};
+                                index++;
                             }
                             ENetPacket* move_packet = enet_packet_create(&moving, sizeof(moving), ENET_PACKET_FLAG_RELIABLE);
                             enet_host_broadcast(Server, 0, move_packet);
@@ -1063,8 +1065,13 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                         moving.FromTile = FromTileSelected;
                         moving.ToTile = ToTileSelected;
                         moving.ID = PlayerID;
+                        int index = 0;
+                        for(int i = 0; i < 5; ++i) {
+                            moving.Moving[i].second.type = 'e';
+                        }
                         for(auto i : MovingTroops) {
-                            moving.Moving[i.first] = i.second;
+                            moving.Moving[index] = {i.first, i.second};
+                            index++;
                         }
                         ENetPacket* move_packet = enet_packet_create(&moving, sizeof(moving), ENET_PACKET_FLAG_RELIABLE);
                         enet_peer_send(Peer, 0, move_packet);   
@@ -1161,55 +1168,38 @@ void DrawDeleteTroopsScreen(Image Map, Texture2D Infantry_Icon, Texture2D Medic_
             }
         }
         else {
-                if(Troops[TileSelected - 1][Key - 1].side == 'e') {
-                    cout << "That's an empty_troop slot!" << endl;
-                    TroopChosen = 0;
-                }
-                else if(Troops[TileSelected - 1][Key - 1].side != Players[Round % PlayerCount].color) {
-                    cout << "You can't delete an enemy troop" << endl;
-                    TroopChosen = 0;
-                }
-                else if(Troops[TileSelected - 1][Key - 1].type == 'c') {
-                    cout << "You can't delete your commander!" << endl;
-                    TroopChosen = 0;
-                }
-                else if(Troops[TileSelected - 1][Key - 1].side == Players[Round % PlayerCount].color) {
-                    int First = 0;
-                    int MaxHealth = 0;
-                    switch(Troops[TileSelected - 1][Key - 1].type) {
-                        case 'i':
-                            First = Infantry_Cost;
-                            MaxHealth = Infantry_Full;
-                            break;
-                        case 'm':
-                            First = Medic_Cost;
-                            MaxHealth = Medic_Full;
-                            break;
-                        case 'a':
-                            First = Artillery_Cost;
-                            MaxHealth = Artillery_Full;
-                            break;
-                        case 't': 
-                            First = Tank_Cost;
-                            MaxHealth = Tank_Full;
-                            break;
-                        case 'p':
-                            First = Plane_Cost;
-                            MaxHealth = Plane_Full;
-                        default:
-                            break;
-                    }
-                    Players[Round % PlayerCount].WarPoints += (First * 6 / 10) * (Troops[TileSelected - 1][Key - 1].health / MaxHealth);
-                    Troops[TileSelected - 1][Key - 1] = empty_troop;
-                    Round++;
-                    TroopChosen = 0;
-                    ItIsAnEmptySlot = 0;
-                    Action = 0;
-                    Checkbox = 0;
+            if(PlayerCurrent == PLAYER_HOTSEAT) {
+                if(DeleteTheTroop(Round % PlayerCount, TileSelected - 1, Key - 1)) {
+                    PointDifferance = 0;
                     TileSelected = 0;
                     Key = 0;
-                    return;
                 }
+            }
+            else if(PlayerCurrent == PLAYER_HOST) {
+                if(DeleteTheTroop(PlayerID - 1, TileSelected - 1, Key - 1)) {
+                    PACKET_DELETE_TROOP delete_troop;
+                    delete_troop.ID = PlayerID;
+                    delete_troop.NewWarPoints = PointDifferance;
+                    delete_troop.Tile = TileSelected;
+                    delete_troop.Slot = Key;
+                    ENetPacket* delete_packet = enet_packet_create(&delete_troop, sizeof(delete_troop), ENET_PACKET_FLAG_RELIABLE);
+                    enet_host_broadcast(Server, 0, delete_packet);
+                    PointDifferance = 0;
+                    TileSelected = 0;
+                    Key = 0;
+                }
+            }
+            else if(PlayerCurrent == PLAYER_CLIENT) {
+                PACKET_DELETE_TROOP delete_troop;
+                delete_troop.ID = PlayerID;
+                delete_troop.NewWarPoints = 0;
+                delete_troop.Tile = TileSelected;
+                delete_troop.Slot = Key - 1;
+                ENetPacket* delete_packet = enet_packet_create(&delete_troop, sizeof(delete_troop), ENET_PACKET_FLAG_RELIABLE);
+                enet_peer_send(Peer, 0, delete_packet);
+                TileSelected = 0;
+                Key = 0;
+            }
         }
     }
     return;
@@ -1350,7 +1340,9 @@ void DrawActions() {
                     enet_host_broadcast(Server, 0, increase_packet);
                 }
                 else if(PlayerCurrent == PLAYER_CLIENT) {
-
+                    PACKET_ROUND increase;
+                    ENetPacket* increase_packet = enet_packet_create(&increase, sizeof(increase), ENET_PACKET_FLAG_RELIABLE);
+                    enet_peer_send(Peer, 0, increase_packet);
                 }
                 Action = 0;
                 Checkbox = 0;
@@ -1632,6 +1624,12 @@ int main() {
                                 enet_host_broadcast(Server, 0, commander_packet);
                             }
                         }
+                        if(*type == INCREASE_ROUND) {
+                            Round++;
+                            PACKET_ROUND increase;
+                            ENetPacket* increase_packet = enet_packet_create(&increase, sizeof(increase), ENET_PACKET_FLAG_RELIABLE);
+                            enet_host_broadcast(Server, 0, increase_packet);
+                        }
                         if(*type == BUY_TROOP) {
                             PACKET_BUY_TROOP* buy_troop = (PACKET_BUY_TROOP*)event.packet->data;
                             int Bought = buy_troop->BoughtTroop;
@@ -1670,21 +1668,44 @@ int main() {
                             int ToTile = moving->ToTile;
                             int ID = (int)(uintptr_t)event.peer->data;
                             for(auto i : moving->Moving) {
-                                MovingTroops[i.first] = i.second;
+                                if(i.second.type != 'e') {
+                                    cout << i.first << " " << i.second.type << endl;
+                                    MovingTroops[i.first] = i.second;
+                                }
                             }
                             if(IsMovingOkay(FromTile, ToTile, ID - 1)) {
                                 PACKET_MOVE_TROOP moving_s;
                                 moving_s.FromTile = FromTile;
                                 moving_s.ToTile = ToTile;
                                 moving_s.ID = ID;
+                                int index = 0;
                                 for(auto i : MovingTroopsCopy) {
-                                    moving_s.Moving[i.first] = i.second;
+                                    moving_s.Moving[index] = {i.first, i.second};
+                                    index++;
                                 }
                                 ENetPacket* move_packet = enet_packet_create(&moving_s, sizeof(moving_s), ENET_PACKET_FLAG_RELIABLE);
                                 enet_host_broadcast(Server, 0, move_packet);
                             }
                             MovingTroops.clear();
                             MovingTroopsCopy.clear();
+                        }
+                        if(*type == DELETE_TROOP) {
+                            PACKET_DELETE_TROOP* delete_troop = (PACKET_DELETE_TROOP*)event.packet->data;
+                            int Tile = delete_troop->Tile;
+                            int Slot = delete_troop->Slot;
+                            int ID = (int)(uintptr_t)event.peer->data;
+                            PACKET_DELETE_TROOP delete_success;
+                            if(DeleteTheTroop(ID - 1, Tile - 1, Slot - 1)) {
+                                delete_success.ID = ID;
+                                delete_success.Tile = Tile;
+                                delete_success.Slot = Slot;
+                                delete_success.NewWarPoints = PointDifferance;
+                                PointDifferance = 0;
+                                TileSelected = 0;
+                                Key = 0;
+                            }
+                            ENetPacket* delete_packet = enet_packet_create(&delete_success, sizeof(delete_success), ENET_PACKET_FLAG_RELIABLE);
+                            enet_host_broadcast(Server, 0, delete_packet);
                         }
                         enet_packet_destroy(event.packet);
                         break;
@@ -1822,9 +1843,38 @@ int main() {
                                     if(Troops[ToTile - 1][j].type == 'e') {
                                         Troops[ToTile - 1][j] = Troops[FromTile - 1][i.first];
                                         break;
-                                    }
+                                    } 
                                 }
                                 Troops[FromTile - 1][i.first] = empty_troop;
+                            }
+                            Round++;
+                        }
+                        if(*type == COMBAT) {
+                            PACKET_COMBAT* combat = (PACKET_COMBAT*)event.packet->data;
+                            for(int j = 0; j < combat->index; ++j) {
+                                if(combat->NewTroopHealths[j].second <= 0) {
+                                    Troops[combat->NewTroopHealths[j].first.first][combat->NewTroopHealths[j].first.second] = empty_troop;
+                                }
+                                else {
+                                    Troops[combat->NewTroopHealths[j].first.first][combat->NewTroopHealths[j].first.second].health = combat->NewTroopHealths[j].second;
+                                }
+                            }
+                            for(int j = 0; j < PlayerCount; ++j) {
+                                if(Players[j].CommanderAvalible != combat->CommanderAvalibility[j]) {
+                                    Players[j].CommanderAvalible = combat->CommanderAvalibility[j];
+                                    DeleteEliminatedTroops();
+                                }
+                            }
+                        }
+                        if(*type == DELETE_TROOP) {
+                            PACKET_DELETE_TROOP* delete_troop = (PACKET_DELETE_TROOP*)event.packet->data;
+                            int ID = delete_troop->ID;
+                            int Tile = delete_troop->Tile;
+                            int Slot = delete_troop->Slot;
+                            int NewPoint = delete_troop->NewWarPoints;
+                            Troops[Tile - 1][Slot - 1] = empty_troop;
+                            if(PlayerID == ID) {
+                                Players[ID - 1].WarPoints += NewPoint;
                             }
                             Round++;
                         }
@@ -1941,10 +1991,10 @@ int main() {
         if(LastRound != Round) {
             CombatHappened = 0;
             LastRound = Round;
-        }
-        if(!CombatHappened && GameStarted) {
-            Combat();
             ReArrangeTroops();
+        }
+        if(!CombatHappened && GameStarted && PlayerCurrent != PLAYER_CLIENT && Round % PlayerCount == 0) {
+            Combat(PlayerCurrent);
         }
         ClearMouseCoords();
         MouseClicked = IsMouseButtonPressed(0);

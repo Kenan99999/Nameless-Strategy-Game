@@ -216,3 +216,77 @@ bool IsMovingOkay (int FromTileSelected, int ToTileSelected, int PlayerID) {
                         return false;
                     }
 }
+
+void DeleteEliminatedTroops() {
+    for(int i = 0; i < PlayerCount; ++i) {
+        if(Players[i].CommanderAvalible == 0) {
+            for(int j = 0; j < 47; ++j) {
+                for(int k = 0; k < 10; ++k) {
+                    if(Troops[j][k].side == Players[i].color) {
+                        Troops[j][k] = empty_troop;
+                    }
+                }
+            }
+        }
+        else {
+            continue;
+        }
+    }
+}
+
+bool DeleteTheTroop(int PlayerID, int Tile, int Slot) {
+                if(Troops[Tile][Slot].side == 'e') {
+                    cout << "That's an empty_troop slot!" << endl;
+                    TroopChosen = 0;
+                    return false;
+                }
+                else if(Troops[Tile][Slot].side != Players[Round % PlayerCount].color) {
+                    cout << "You can't delete an enemy troop" << endl;
+                    TroopChosen = 0;
+                    return false;
+                }
+                else if(Troops[Tile][Slot].type == 'c') {
+                    cout << "You can't delete your commander!" << endl;
+                    TroopChosen = 0;
+                    return false;
+                }
+                else if(Troops[Tile][Slot].side == Players[Round % PlayerCount].color) {
+                    int First = 0;
+                    int MaxHealth = 0;
+                    switch(Troops[Tile][Slot].type) {
+                        case 'i':
+                            First = Infantry_Cost;
+                            MaxHealth = Infantry_Full;
+                            break;
+                        case 'm':
+                            First = Medic_Cost;
+                            MaxHealth = Medic_Full;
+                            break;
+                        case 'a':
+                            First = Artillery_Cost;
+                            MaxHealth = Artillery_Full;
+                            break;
+                        case 't': 
+                            First = Tank_Cost;
+                            MaxHealth = Tank_Full;
+                            break;
+                        case 'p':
+                            First = Plane_Cost;
+                            MaxHealth = Plane_Full;
+                        default:
+                            break;
+                    }
+                    Players[PlayerID].WarPoints += (First * 6 / 10) * (Troops[Tile][Slot].health / MaxHealth);
+                    PointDifferance = (First * 6 / 10) * (Troops[Tile][Slot].health / MaxHealth);
+                    Troops[Tile][Slot] = empty_troop;
+                    Round++;
+                    TroopChosen = 0;
+                    ItIsAnEmptySlot = 0;
+                    Action = 0;
+                    Checkbox = 0;
+                    return true;
+                }
+                cout << "Unknown Error!" << endl;
+                TroopChosen = 0;
+                return false;
+}

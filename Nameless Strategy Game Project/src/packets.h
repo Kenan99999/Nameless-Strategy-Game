@@ -11,7 +11,8 @@ enum Packets {
     JOIN_RESPONSE = 8,
     START_GAME = 9,
     DISCONNECTED = 10,
-    INCREASE_ROUND = 11
+    INCREASE_ROUND = 11,
+    COMBAT = 12
 };
 
 struct PACKET_PLAYER_JOIN {
@@ -57,6 +58,21 @@ struct PACKET_MOVE_TROOP {
     Packets type = MOVE_TROOP;
     int FromTile;
     int ToTile;
-    map<int, troop> Moving;
+    pair<int, troop> Moving[5];
     int ID;
+};
+
+struct PACKET_COMBAT {
+    Packets type = COMBAT;
+    pair<pair<int, int>, int> NewTroopHealths[300];
+    bool CommanderAvalibility[6];
+    int index;
+};
+
+struct PACKET_DELETE_TROOP {
+    Packets type = DELETE_TROOP;
+    int Tile;
+    int ID;
+    int Slot;
+    int NewWarPoints;
 };

@@ -1225,31 +1225,10 @@ void DrawBuildScreen(Image Map, Texture2D Empty_Icon, Texture2D WarPoint, Textur
                     break;
                 }
             }
-            if(IsTileOkay) {
-                IsTileOkay = 0;
-                    for(int i = 0; i < 10; ++i) {
-                        if(Troops[TileSelected - 1][i].side == Players[Round % PlayerCount].color) {
-                            IsTileOkay = 1;
-                            break;
-                        }
-                    }
-                if(Players[Round % PlayerCount].WarPoints >= BuiltBuilding.cost && IsTileOkay) {
-                    Buildings[TileSelected - 1][Slot] = BuiltBuilding;
-                    Buildings[TileSelected - 1][Slot].WhoBuiltIt = Players[Round % PlayerCount].color;
-                    Players[Round % PlayerCount].WarPoints -= BuiltBuilding.cost;
-                    BoughtBuilding = 0;
-                    TileSelected = 0;
-                    Action = 0;
-                    IsTileOkay = 1;
-                    Round++;
-                }
-                else {
-                    cout << "You don't have any troops on that tile or you don't have enough money" << endl;
-                }
+            if(PlayerCurrent == PLAYER_HOTSEAT) {
+                IsBuildOkay(Round % PlayerCount, Slot);
             }
-            else {
-                cout << "Tile is not okay!" << endl;
-            }
+            // DEVAM ET
         }
         else if(Checkbox == 2) {
             BoughtBuilding = 0;

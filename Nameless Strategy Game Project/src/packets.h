@@ -76,3 +76,9 @@ struct PACKET_DELETE_TROOP {
     int Slot;
     int NewWarPoints;
 };
+
+struct PACKET_BUILD {
+    Packets type = BUILD;
+    int Tile;
+    int Who;
+};

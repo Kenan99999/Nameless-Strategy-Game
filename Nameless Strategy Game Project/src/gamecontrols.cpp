@@ -240,7 +240,7 @@ bool DeleteTheTroop(int PlayerID, int Tile, int Slot) {
                     TroopChosen = 0;
                     return false;
                 }
-                else if(Troops[Tile][Slot].side != Players[Round % PlayerCount].color) {
+                else if(Troops[Tile][Slot].side != Players[PlayerID].color) {
                     cout << "You can't delete an enemy troop" << endl;
                     TroopChosen = 0;
                     return false;
@@ -250,7 +250,7 @@ bool DeleteTheTroop(int PlayerID, int Tile, int Slot) {
                     TroopChosen = 0;
                     return false;
                 }
-                else if(Troops[Tile][Slot].side == Players[Round % PlayerCount].color) {
+                else if(Troops[Tile][Slot].side == Players[PlayerID].color) {
                     int First = 0;
                     int MaxHealth = 0;
                     switch(Troops[Tile][Slot].type) {
@@ -289,4 +289,44 @@ bool DeleteTheTroop(int PlayerID, int Tile, int Slot) {
                 cout << "Unknown Error!" << endl;
                 TroopChosen = 0;
                 return false;
+}
+
+bool IsBuildOkay(int PlayerID, int Slot) {
+            IsTileOkay = 0;
+            for(int i = 0; i < 2; ++i) {
+                if(Buildings[TileSelected - 1][i].type == 'e') {
+                    IsTileOkay = 1;
+                    Slot = i;
+                    break;
+                }
+            }
+            if(IsTileOkay) {
+                IsTileOkay = 0;
+                    for(int i = 0; i < 10; ++i) {
+                        if(Troops[TileSelected - 1][i].side == Players[PlayerID].color) {
+                            IsTileOkay = 1;
+                            break;
+                        }
+                    }
+                if(Players[PlayerID].WarPoints >= BuiltBuilding.cost && IsTileOkay) {
+                    Buildings[TileSelected - 1][Slot] = BuiltBuilding;
+                    Buildings[TileSelected - 1][Slot].WhoBuiltIt = Players[PlayerID].color;
+                    Players[PlayerID].WarPoints -= BuiltBuilding.cost;
+                    BoughtBuilding = 0;
+                    TileSelected = 0;
+                    Action = 0;
+                    IsTileOkay = 1;
+                    Round++;
+                    return true;
+                }
+                else {
+                    cout << "You don't have any troops on that tile or you don't have enough money" << endl;
+                    return false;
+                }
+            }
+            else {
+                cout << "Tile is not okay!" << endl;
+                return false;
+            }
+            return false;
 }

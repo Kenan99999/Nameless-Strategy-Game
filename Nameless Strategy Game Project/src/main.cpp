@@ -1228,7 +1228,22 @@ void DrawBuildScreen(Image Map, Texture2D Empty_Icon, Texture2D WarPoint, Textur
             if(PlayerCurrent == PLAYER_HOTSEAT) {
                 IsBuildOkay(Round % PlayerCount, Slot);
             }
-            // DEVAM ET
+            if(PlayerCurrent == PLAYER_HOST) {
+                if(IsBuildOkay(PlayerID - 1, Slot)) {
+                    PACKET_BUILD build;
+                    build.Tile = TileSelected;
+                    build.Who = PlayerID;
+                    ENetPacket* build_packet = enet_packet_create(&build, sizeof(build), ENET_PACKET_FLAG_RELIABLE);
+                    enet_host_broadcast(Server, 0, build_packet);
+                }
+            }
+            if(PlayerCurrent == PLAYER_CLIENT) {
+                PACKET_BUILD build;
+                build.Tile = TileSelected;
+                build.Who = PlayerID;
+                ENetPacket* build_packet = enet_packet_create(&build, sizeof(build), ENET_PACKET_FLAG_RELIABLE);
+                enet_peer_send(Peer, 0, build_packet);
+            }
         }
         else if(Checkbox == 2) {
             BoughtBuilding = 0;

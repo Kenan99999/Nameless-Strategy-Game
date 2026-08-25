@@ -292,14 +292,6 @@ bool DeleteTheTroop(int PlayerID, int Tile, int Slot) {
 }
 
 bool IsBuildOkay(int PlayerID, int Slot) {
-            IsTileOkay = 0;
-            for(int i = 0; i < 2; ++i) {
-                if(Buildings[TileSelected - 1][i].type == 'e') {
-                    IsTileOkay = 1;
-                    Slot = i;
-                    break;
-                }
-            }
             if(IsTileOkay) {
                 IsTileOkay = 0;
                     for(int i = 0; i < 10; ++i) {

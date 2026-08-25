@@ -1872,6 +1872,11 @@ int main() {
                             }
                             Round++;
                         }
+                        if(*type == BUILD) {
+                            PACKET_BUILD* build = (PACKET_BUILD*)event.packet->data;
+                            int ID = (int)(uintptr_t)event.peer->data;
+                            int Slot = build->Tile;
+                        }
                         if(*type == INCREASE_ROUND) {
                             Round++;
                         }

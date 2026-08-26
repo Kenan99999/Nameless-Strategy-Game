@@ -292,8 +292,8 @@ inline vector<string> Terrain(47);
 inline vector<string> GameplayTips(2);
 inline vector<Player> Players;
 inline string SelectedTip;
-inline const int screenWidth = 1720;
-inline const int screenHeight = 880;
+inline const int screenWidth = 1920;
+inline const int screenHeight = 1080;
 
 inline const int MapBorderX = 400;
 inline const int MapBorderY = 0;
@@ -362,7 +362,6 @@ inline Texture2D Green;
 inline Texture2D Yellow;
 inline Texture2D Orange;
 inline Texture2D Purple;
-// buynları resatarta ekle
 inline ENetHost* Server = nullptr;
 inline ENetHost* Client = nullptr;
 inline ENetPeer* Peer = nullptr;

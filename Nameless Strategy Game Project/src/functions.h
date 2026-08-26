@@ -34,4 +34,4 @@ void DeleteEliminatedTroops();
 
 bool DeleteTheTroop(int PlayerID, int Tile, int Slot);
 
-bool IsBuildOkay(int, PlayerID, int Slot);
+bool IsBuildOkay(int PlayerID, int Slot);

@@ -234,9 +234,11 @@ void Combat(int PlayerCurrent) {
         combat.CommanderAvalibility[j] = Players[j].CommanderAvalible;
     }
     combat.index = combatindex;
-    if(PlayerCurrent == 2) {
+    cout << "Şu anki PlayerCurrent Degeri: " << PlayerCurrent << endl;
+    if(PlayerCurrent == 3) {
         ENetPacket* combat_packet = enet_packet_create(&combat, sizeof(combat), ENET_PACKET_FLAG_RELIABLE);
         enet_host_broadcast(Server, 0, combat_packet);
+        cout << "[HOST] Savas paketi firlatildi! Etkilenen asker: " << combatindex << endl;
     }
     CombatHappened = 1;
     return;

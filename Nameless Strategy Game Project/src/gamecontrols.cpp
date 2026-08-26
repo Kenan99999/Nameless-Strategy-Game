@@ -305,7 +305,6 @@ bool IsBuildOkay(int PlayerID, int Slot) {
                     Buildings[TileSelected - 1][Slot].WhoBuiltIt = Players[PlayerID].color;
                     Players[PlayerID].WarPoints -= BuiltBuilding.cost;
                     BoughtBuilding = 0;
-                    TileSelected = 0;
                     Action = 0;
                     IsTileOkay = 1;
                     Round++;

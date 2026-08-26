@@ -81,4 +81,6 @@ struct PACKET_BUILD {
     Packets type = BUILD;
     int Tile;
     int Who;
+    int Slot;
+    building Built;
 };

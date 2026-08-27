@@ -1853,6 +1853,11 @@ int main() {
                             troop Troop = place->Troop;
                             Troops[Tile - 1][Slot] = Troop;
                             Troops[Tile - 1][Slot].side = Players[ID - 1].color;
+                            for(int j = 0; j < 10; ++j) {
+                                if(Players[ID - 1].TroopBank[j].type == Troop.type) {
+                                    Players[ID - 1].TroopBank[j] = empty_troop;
+                                }
+                            }
                             cout << Troop.type << " " << Troop.side << " " << Tile - 1 << " " << Slot << endl;
                             Action = 0;
                             TileSelected = 0;

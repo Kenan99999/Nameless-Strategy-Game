@@ -1821,22 +1821,27 @@ int main() {
                                         case 1:
                                             Players[PlayerID - 1].TroopBank[i] = infantry;
                                             Players[PlayerID - 1].TroopBank[i].side = Players[PlayerID - 1].color;
+                                            Players[PlayerID - 1].WarPoints -= Infantry_Cost;
                                             break;
                                         case 2:
                                             Players[PlayerID - 1].TroopBank[i] = medic;
                                             Players[PlayerID - 1].TroopBank[i].side = Players[PlayerID - 1].color;
+                                            Players[PlayerID - 1].WarPoints -= Medic_Cost;
                                             break;
                                         case 3:
                                             Players[PlayerID - 1].TroopBank[i] = artillery;
                                             Players[PlayerID - 1].TroopBank[i].side = Players[PlayerID - 1].color;
+                                            Players[PlayerID - 1].WarPoints -= Artillery_Cost;
                                             break;
                                         case 4:
                                             Players[PlayerID - 1].TroopBank[i] = tank;
                                             Players[PlayerID - 1].TroopBank[i].side = Players[PlayerID - 1].color;
+                                            Players[PlayerID - 1].WarPoints -= Tank_Cost;
                                             break;
                                         case 5:
                                             Players[PlayerID - 1].TroopBank[i] = plane;
                                             Players[PlayerID - 1].TroopBank[i].side = Players[PlayerID - 1].color;
+                                            Players[PlayerID - 1].WarPoints -= Plane_Cost;
                                             break;
                                     }
                                     break;

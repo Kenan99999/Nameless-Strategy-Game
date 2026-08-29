@@ -12,7 +12,8 @@ enum Packets {
     START_GAME = 9,
     DISCONNECTED = 10,
     INCREASE_ROUND = 11,
-    COMBAT = 12
+    COMBAT = 12,
+    LOAD = 13
 };
 
 struct PACKET_PLAYER_JOIN {
@@ -83,4 +84,14 @@ struct PACKET_BUILD {
     int Who;
     int Slot;
     building Built;
+};
+
+struct PACKET_SYNC_THE_GAME {
+    Packets type = LOAD;
+    troop Troops[47][10];
+    building Buildings[47][10];
+    int Round;
+    int WarPoints[6];
+    troop TroopBanks[6][10];
+    bool Commanders[6];
 };

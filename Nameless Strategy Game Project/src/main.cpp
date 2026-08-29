@@ -191,8 +191,6 @@ void GameSave() {
                 File << Players[i].WarPoints << endl;
             }
             File << Round << endl;
-            File << RedWarPoints << endl;
-            File << BlueWarPoints << endl;
             File << CombatHappened << endl;
             File << PlayWithABot << endl;
             File << Increased << endl;
@@ -210,8 +208,21 @@ void GameSave() {
                     File << Buildings[i][j].cost << endl;
                 }
             }
+            for(int i = 0; i < 47; ++i) {
+                for(int j = 0; j < 2; ++j) {
+                    File << Buildings[i][j].type << endl;
+                    File << Buildings[i][j].WhoBuiltIt << endl;
+                    File << Buildings[i][j].health << endl;
+                    File << Buildings[i][j].Attack << endl;
+                    File << Buildings[i][j].Defense << endl;
+                    File << Buildings[i][j].AirAttack << endl;
+                    File << Buildings[i][j].Heal << endl;
+                    File << Buildings[i][j].Repair << endl;
+                    File << Buildings[i][j].max_health << endl;
+                    File << Buildings[i][j].cost << endl;
+                }
+            }
         }
-
         SaveScreen = 0;
         index = 0;
     }
@@ -294,11 +305,16 @@ void restart() {
     Server = nullptr;
     Client = nullptr;
     Peer = nullptr;
+    HostIP.clear();
     LocalPlayerCount = 0;
     MovingTroops.clear();
     MovingTroopsCopy.clear();
     Ticks.clear();
     PointDifferance = 0;
+    LocalPlay = 0;
+    PlayerCurrent = PLAYER_NONE;
+    JoiningServer = 0;
+    InServer = 0;
 }
 /*void Combat() {
     for(int i = 0; i < 47; ++i) {
@@ -495,9 +511,9 @@ void restart() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:\nMAJOR UPDATE", 10, 10, 40, BLACK);
     DrawText("Credits:", 960, 10, 40, BLACK);
-    DrawText("- Added multiplayer on a local network\n- Added multi moving\n- Changed combat system\n(now includes attacker and defender)", 10, 150, 30, BLACK);
+    DrawText("- Saving and loading\nadded to multiplayer\n- bugfixes", 10, 150, 30, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\nTextures:\nÖmer Kaymak\n\nMade with:\nC++/Raylib", 960, 150, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.11", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.11.1", 10, 1040, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -661,7 +677,7 @@ void DrawTitleScreen(Texture2D Logo) {
     if(PlayerCount < 6) DrawText("+", 750, 550, 35, BLACK);
     if(PlayerCount > 2) DrawText("-", 700, 550, 35, BLACK);
     DrawText("Play with a bot\n(Disabled for now)", 1050, 450, 50, BLACK);
-    DrawText("Version: Pre-alpha 0.11", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.11.1", 10, 1040, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS GAME", 800, 10, 65, BLACK);
     DrawRectangle(1600, 800, 300, 120, GRAY);
@@ -928,6 +944,8 @@ void PlaceScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Comman
                     ENetPacket* placement_packet = enet_packet_create(&placement, sizeof(placement), ENET_PACKET_FLAG_RELIABLE);
                     enet_peer_send(Peer, 0, placement_packet);
                     TroopChosen = 0;
+                    Key = 0;
+                    TileSelected = 0;
                 }
             }
         }
@@ -1089,6 +1107,20 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                     }
                     MovingTroops.clear();
                     MovingTroopsCopy.clear();
+                    ToTileSelected = 0;
+                    IsTileOkay = 1;
+                    Checkbox = 0;
+                    FromTileSelected = 0;
+                    TileSelected = 0;
+                    TroopChosen = 0;
+                    Action = 0;
+                    MovingTroop.type = 'n';
+                    Key = 0;
+                    Checkbox = 0;
+                    PressedKeyM = 0;
+                    PressedKeyP = 0;
+                    PressedKeyC = 0;
+                    return;
                 }
                 else if(Checkbox == 2) {
                     ToTileSelected = 0;
@@ -1104,6 +1136,8 @@ void MoveScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
                     PressedKeyM = 0;
                     PressedKeyP = 0;
                     PressedKeyC = 0;
+                    MovingTroops.clear();
+                    MovingTroopsCopy.clear();
                     return;
                 }
             }
@@ -1260,6 +1294,7 @@ void DrawBuildScreen(Image Map, Texture2D Empty_Icon, Texture2D WarPoint, Textur
                 build.Built = BuiltBuilding;
                 ENetPacket* build_packet = enet_packet_create(&build, sizeof(build), ENET_PACKET_FLAG_RELIABLE);
                 enet_peer_send(Peer, 0, build_packet);
+                TileSelected = 0;
             }
         }
         else if(Checkbox == 2) {
@@ -1404,7 +1439,18 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
 
             if(exists(LoadingFile)) {
                 if(File.is_open()) {
-                    File >> PlayerCount;
+                    PACKET_SYNC_THE_GAME sync;
+                    int Player = 0;
+                    File >> Player;
+                    if(PlayerCount != Player) {
+                        cout << "You can only load the game if the game has same player count" << endl;
+                        TempKey = 0;
+                        SelectedSave = 0;
+                        LoadScreen = 0;
+                        Checkbox = 0;
+                        return;
+                    }
+                    PlayerCount = Player;
                     while(Players.size() > 0) {
                         Players.pop_back();
                     }
@@ -1428,6 +1474,7 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
                     for(int i = 0; i < PlayerCount; ++i) {
                         File >> Players[i].color;
                         File >> Players[i].CommanderAvalible;
+                        sync.Commanders[i] = Players[i].CommanderAvalible;
                         for(int j = 0; j < 10; ++j) {
                             File >> Players[i].TroopBank[j].type;
                             File >> Players[i].TroopBank[j].side;
@@ -1436,12 +1483,16 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
                             File >> Players[i].TroopBank[j].defense;
                             File >> Players[i].TroopBank[j].heal;
                             File >> Players[i].TroopBank[j].max_health;
+                            sync.TroopBanks[i][j] = Players[i].TroopBank[j];
                         }
                         File >> Players[i].WarPoints;
+                        sync.WarPoints[i] = Players[i].WarPoints;
                     }
                     File >> Round;
-                    File >> RedWarPoints;
-                    File >> BlueWarPoints;
+                    sync.Round = Round;
+                    File >> CombatHappened;
+                    File >> PlayWithABot;
+                    File >> Increased;
                     for(int i = 0; i < 47; ++i) {
                         for(int j = 0; j < 10; ++j) {
                             File >> Troops[i][j].type;
@@ -1451,12 +1502,10 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
                             File >> Troops[i][j].defense;
                             File >> Troops[i][j].heal;
                             File >> Troops[i][j].max_health;
+                            sync.Troops[i][j] = Troops[i][j];
                         }
                     }
-                    File >> CombatHappened;
-                    File >> PlayWithABot;
-                    File >> Increased;
-                    for(int i = 0; i < 4; ++i) {
+                    for(int i = 0; i < 47; ++i) {
                         for(int j = 0; j < 2; ++j) {
                             File >> Buildings[i][j].type;
                             File >> Buildings[i][j].WhoBuiltIt;
@@ -1468,7 +1517,12 @@ void GameLoadScreen(Texture2D Tick, Texture2D TrashBin) {
                             File >> Buildings[i][j].Repair;
                             File >> Buildings[i][j].max_health;
                             File >> Buildings[i][j].cost;
+                            sync.Buildings[i][j] = Buildings[i][j];
                         }
+                    }
+                    if(PlayerCurrent == PLAYER_HOST) {
+                        ENetPacket* sync_packet = enet_packet_create(&sync, sizeof(sync), ENET_PACKET_FLAG_RELIABLE);
+                        enet_host_broadcast(Server, 0, sync_packet);
                     }
                 }
                 TempKey = 0;
@@ -1685,6 +1739,8 @@ int main() {
                                 }
                             }
                             if(IsMovingOkay(FromTile, ToTile, ID - 1)) {
+                                MovingTroops.clear();
+                                MovingTroopsCopy.clear();
                                 PACKET_MOVE_TROOP moving_s;
                                 moving_s.FromTile = FromTile;
                                 moving_s.ToTile = ToTile;
@@ -1751,12 +1807,10 @@ int main() {
                     case ENET_EVENT_TYPE_DISCONNECT:
                         cout << "Disconnected or server denied us" << endl;
                         LocalPlay = 0;
-                        Client = nullptr;
-                        Peer = nullptr;
-                        HostIP.clear();
                         PlayerCurrent = PLAYER_NONE;
+                        JoiningServer = 0;
                         InServer = 0;
-                        restart();
+                        goto restart;
                         break;
                     case ENET_EVENT_TYPE_RECEIVE:
                     {
@@ -1778,6 +1832,7 @@ int main() {
                                 LocalPlayerCount--;
                                 PlayerID--;
                             }
+
                         }
                         if(*type == START_GAME) {
                             GameStarted = 1;
@@ -1928,6 +1983,25 @@ int main() {
                             Buildings[Tile - 1][Slot].WhoBuiltIt = Players[ID - 1].color;
                             Round++;
                         }
+                        if(*type == LOAD) {
+                            PACKET_SYNC_THE_GAME* sync = (PACKET_SYNC_THE_GAME*)event.packet->data;
+                            for(int i = 0; i < 47; ++i) {
+                                for(int j = 0; j < 10; ++j) {
+                                    Troops[i][j] = sync->Troops[i][j];
+                                }
+                                for(int j = 0; j < 2; ++j) {
+                                    Buildings[i][j] = sync->Buildings[i][j];
+                                }
+                            }
+                            for(int i = 0; i < 10; ++i) {
+                                Players[PlayerID - 1].TroopBank[i] = sync->TroopBanks[PlayerID - 1][i];
+                            }
+                            Players[PlayerID - 1].WarPoints = sync->WarPoints[PlayerID - 1];
+                            for(int i = 0; i < PlayerCount; ++i) {
+                                Players[i].CommanderAvalible = sync->Commanders[i];
+                            }
+                            Round = sync->Round;
+                        }
                         if(*type == INCREASE_ROUND) {
                             Round++;
                         }
@@ -2064,15 +2138,8 @@ int main() {
                 PlayerCount--;
             }
         }
-        if(LocalPlay && IsKeyPressed(KEY_ESCAPE)) {
-            LocalPlay = 0;
-            PlayerCurrent = PLAYER_NONE;
-            JoiningServer = 0;
-            InServer = 0;
-            Server = nullptr;
-            Client = nullptr;
-            Peer = nullptr;
-            HostIP.clear();
+        if(LocalPlay && IsKeyPressed(KEY_ESCAPE) && !GameStarted) {
+            goto restart;
         }
         if(MouseClicked && TimePlayed >= 0.95f) { // Mouse Controls
             GetMouseCoords();
@@ -2245,7 +2312,7 @@ int main() {
                     Saves();
                 }
                 else {
-                    DrawText("Saving and loading are not avalible in multiplayer for now!", 10, 10, 100, BLACK);
+                    DrawText("Saving and loading are not avalible\nin multiplayer for now!", 10, 10, 100, BLACK);
                     if(IsKeyPressed(KEY_ESCAPE)) {
                         SaveScreen = 0;
                     }

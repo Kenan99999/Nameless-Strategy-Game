@@ -302,6 +302,7 @@ void restart() {
     PlayWithABot = 0;
     Page = 0;
     index = 0;
+    if(Server != nullptr) enet_host_destroy(Server);
     Server = nullptr;
     Client = nullptr;
     Peer = nullptr;
@@ -1593,6 +1594,11 @@ int main() {
     PlayMusicStream(Intro);
     SetMusicVolume(Intro, 1.0f);
     SetMusicPan(Intro, 0.0f);
+    if(enet_initialize() != 0) {
+        cout << "An error has occured (ERROR 0)" << endl;
+        return EXIT_FAILURE;
+    }
+    atexit(enet_deinitialize);
     restart:
     bool TroopsCleared = 0;
     GameCamera.target = {MapBorderX, MapBorderY};
@@ -1608,11 +1614,6 @@ int main() {
     MovingTroop.type = 'n';
     int GameShouldEnd = 0;
     int GameDraw = 0;
-    if(enet_initialize() != 0) {
-        cout << "control your internet" << endl;
-        return EXIT_FAILURE;
-    }
-    atexit(enet_deinitialize);
     ENetAddress Host_Address;
     Host_Address.port = 2222;
     Host_Address.host = ENET_HOST_ANY;
@@ -1732,6 +1733,8 @@ int main() {
                             int FromTile = moving->FromTile;
                             int ToTile = moving->ToTile;
                             int ID = (int)(uintptr_t)event.peer->data;
+                            MovingTroops.clear();
+                            MovingTroopsCopy.clear();
                             for(auto i : moving->Moving) {
                                 if(i.second.type != 'e') {
                                     cout << i.first << " " << i.second.type << endl;
@@ -1739,8 +1742,6 @@ int main() {
                                 }
                             }
                             if(IsMovingOkay(FromTile, ToTile, ID - 1)) {
-                                MovingTroops.clear();
-                                MovingTroopsCopy.clear();
                                 PACKET_MOVE_TROOP moving_s;
                                 moving_s.FromTile = FromTile;
                                 moving_s.ToTile = ToTile;
@@ -1788,6 +1789,7 @@ int main() {
                                 build_s.Who = ID;
                                 build_s.Built = BuiltBuilding;
                                 ENetPacket* build_packet = enet_packet_create(&build_s, sizeof(build_s), ENET_PACKET_FLAG_RELIABLE);
+                                enet_host_broadcast(Server, 0, build_packet);
                                 TileSelected = 0;
                             }
                         }
@@ -1920,7 +1922,12 @@ int main() {
                             }
                             cout << Troop.type << " " << Troop.side << " " << Tile - 1 << " " << Slot << endl;
                             Action = 0;
-                            TileSelected = 0;
+                            PressedKeyC = 0;
+                            PressedKeyP = 0;
+                            PressedKeyM = 0;
+                            Checkbox = 0;
+                            TempKey = 0;
+                            TroopChosen = 0;
                             Key = 0;
                             TileSelected = 0;
                             Round++;
@@ -1932,6 +1939,9 @@ int main() {
                             int ID = moving->ID;
                             cout << "From: " << FromTile << "To: " << ToTile << endl;
                             for(auto i : moving->Moving) {
+                                if(i.second.type == 'e') {
+                                    continue;
+                                }
                                 cout << "Troop: " << i.second.type << "Slot: " << i.first << endl;
                                 for(int j = 0; j < 10; ++j) {
                                     if(Troops[ToTile - 1][j].type == 'e') {
@@ -1975,12 +1985,15 @@ int main() {
                         }
                         if(*type == BUILD) {
                             PACKET_BUILD* build = (PACKET_BUILD*)event.packet->data;
-                            int ID = (int)(uintptr_t)event.peer->data;
+                            int ID = build->Who;
                             int Slot = build->Slot;
                             int Tile = build->Tile;
                             building Built = build->Built;
                             Buildings[Tile - 1][Slot] = Built;
                             Buildings[Tile - 1][Slot].WhoBuiltIt = Players[ID - 1].color;
+                            if(PlayerID == ID) {
+                                Players[ID - 1].WarPoints -= Built.cost;
+                            }
                             Round++;
                         }
                         if(*type == LOAD) {
@@ -2117,7 +2130,7 @@ int main() {
             LastRound = Round;
             ReArrangeTroops();
         }
-        if(!CombatHappened && GameStarted && PlayerCurrent != PLAYER_CLIENT && Round % PlayerCount == 0) {
+        if(!CombatHappened && GameStarted && PlayerCurrent != PLAYER_CLIENT) {
             Combat(PlayerCurrent);
         }
         ClearMouseCoords();

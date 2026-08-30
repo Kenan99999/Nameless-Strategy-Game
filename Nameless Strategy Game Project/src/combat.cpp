@@ -42,6 +42,7 @@ void Combat(int PlayerCurrent) {
         TroopCounts['y'] = 0;
         TroopCounts['o'] = 0;
         TroopCounts['p'] = 0;
+        set<char> Teams;
         float TeamCount = 0;
         troop TileOld[10];
         for(int j = 0; j < 10; ++j) {
@@ -50,13 +51,12 @@ void Combat(int PlayerCurrent) {
                 TroopCounts[Troops[i][j].side]++;
                 TotalTroops++;
             }
-        }
-        for(auto j : TroopCounts) {
-            if(j.second != 0) {
-                TeamCount++;
+            if(Troops[i][j].side != 'e') {
+                Teams.insert(Troops[i][j].side);
             }
         }
-        if(!TotalTroops || TeamCount < 2) {
+        TeamCount = Teams.size();
+        if(!TotalTroops) {
             continue;
         }
         char Building1 = Buildings[i][0].WhoBuiltIt;
@@ -110,7 +110,7 @@ void Combat(int PlayerCurrent) {
                 }
             }
             for(int k = 0; k < 10; ++k) {
-                if(Troops[i][k].side != Players[j].color) {
+                if(Troops[i][k].side != Players[j].color && Troops[i][k].side != 'e' && TeamCount >= 2) {
                     Attack += Troops[i][k].attack / (TeamCount - 1);
                     Air += Troops[i][k].air_attack / (TeamCount - 1);
                     if(CommanderHere && Attack && TroopCounts[Players[j].color] == 0) {
@@ -234,11 +234,9 @@ void Combat(int PlayerCurrent) {
         combat.CommanderAvalibility[j] = Players[j].CommanderAvalible;
     }
     combat.index = combatindex;
-    cout << "Şu anki PlayerCurrent Degeri: " << PlayerCurrent << endl;
     if(PlayerCurrent == 3) {
         ENetPacket* combat_packet = enet_packet_create(&combat, sizeof(combat), ENET_PACKET_FLAG_RELIABLE);
         enet_host_broadcast(Server, 0, combat_packet);
-        cout << "[HOST] Savas paketi firlatildi! Etkilenen asker: " << combatindex << endl;
     }
     CombatHappened = 1;
     return;

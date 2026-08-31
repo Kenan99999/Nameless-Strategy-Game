@@ -2128,10 +2128,10 @@ int main() {
         if(LastRound != Round) {
             CombatHappened = 0;
             LastRound = Round;
-            ReArrangeTroops();
         }
-        if(!CombatHappened && GameStarted && PlayerCurrent != PLAYER_CLIENT) {
-            Combat(PlayerCurrent);
+        if(!CombatHappened && GameStarted) {
+            if (PlayerCurrent != PLAYER_CLIENT) Combat(PlayerCurrent);
+            ReArrangeTroops();
         }
         ClearMouseCoords();
         MouseClicked = IsMouseButtonPressed(0);

@@ -1771,6 +1771,7 @@ int main() {
                                 PointDifferance = 0;
                                 TileSelected = 0;
                                 Key = 0;
+                                ENetPacket* delete_packet = enet_packet_create(&delete_success, sizeof(delete_success), ENET_PACKET_FLAG_RELIABLE);
                             }
                             ENetPacket* delete_packet = enet_packet_create(&delete_success, sizeof(delete_success), ENET_PACKET_FLAG_RELIABLE);
                             enet_host_broadcast(Server, 0, delete_packet);

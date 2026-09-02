@@ -127,6 +127,7 @@ void DrawHowToPlayScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2
         DrawText("How warpoints work: Warpoints are the main currency to buy troops. It will increase 2 or 3 randomly every 5 * (Player count - 1) rounds\nand will get a +1 increase every 100 rounds.\n(For instance it will increase 4 or 5 randomly at round 205)", 10, 200, 25, BLACK);
         DrawText("How combat works: Combat happens at the start of every round Taken damage will be calculated by the formula enemyattack - yourdefense\nTaken damage will lower you troops health while heal increases it. Air troops like plane will only be damaged with air attack\n(Combat includes a little bit of randomness for fun)", 10, 400, 25, BLACK);
         DrawText("How tiles work: Each tile has a different terrain every terrain gives certain bonuses and debuffs\nForest: Attack 0.8x, Plains: Defense 0.8x, Mountains: Attack 0.75x, Defense 1.5x, City: Defense 1.25x, Bridge: Defense 1.5x, Hills: No effect", 10, 600, 25, BLACK);
+        DrawText("How Buildings work: Buildings will be used by the owner of that tile\n(owner means having the most amount of troop in that tile) in a tie situation builder will use the building", 10, 800, 25, BLACK);
     }
     /*else {
         DrawText("->", 630, 380, 18, BLACK);

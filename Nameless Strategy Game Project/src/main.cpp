@@ -1587,7 +1587,10 @@ int main() {
 
     GameplayTips[0] = "Gameplay\ntip:\nWar Points\nwill increase\nrandomly\nevery\n5 rounds";
     GameplayTips[1] = "Gameplay\ntip:\nMedic can't\nheal a\nplane";
-    SelectedTip = GameplayTips[GetRandomValue(0,1)];
+    GameplayTips[2] = "Gameplay\ntip:\nOnly build\nif you\nhave more\ntroops\nthan your\enemies";
+    GameplayTips[3] = "Gameplay\ntip:\nDeleting\ngives back\nsome of\nthe\nwarpoints";
+    GameplayTips[4] = "Gameplay\ntip:\nMountains\nare a good\nchoice for\ndefending";
+    SelectedTip = GameplayTips[GetRandomValue(0,4)];
     SetTargetFPS(60);
     float TimePlayed = 0;
     InitAudioDevice();
@@ -2322,12 +2325,12 @@ int main() {
             }
             else if(SaveScreen && Round < 9999 + GhostRounds) {
                 ClearBackground(WHITE);
-                if(PlayerCurrent == PLAYER_HOTSEAT) {
+                if(PlayerCurrent == PLAYER_HOTSEAT || PlayerCurrent == PLAYER_HOST) {
                     GameSave();
                     Saves();
                 }
                 else {
-                    DrawText("Saving and loading are not avalible\nin multiplayer for now!", 10, 10, 100, BLACK);
+                    DrawText("Only host can save or load!\n(Press esc to return)", 10, 10, 100, BLACK);
                     if(IsKeyPressed(KEY_ESCAPE)) {
                         SaveScreen = 0;
                     }

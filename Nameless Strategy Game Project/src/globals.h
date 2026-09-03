@@ -289,7 +289,7 @@ inline Color MouseColor = {255, 0, 0, 0};
 inline vector<vector<int>> Tiles(47);
 inline vector<pair<int, int>> Centers;
 inline vector<string> Terrain(47);
-inline vector<string> GameplayTips(2);
+inline vector<string> GameplayTips(5);
 inline vector<Player> Players;
 inline string SelectedTip;
 inline const int screenWidth = 1920;

@@ -70,14 +70,14 @@ void Combat(int PlayerCurrent) {
             else if(j.second == Situation) {
                 s = 'n';
             }
-            if((j.second > maxx || (j.second >= maxx && j.first == Building1)) && Buildings[i][0].type != 'e') {
+            if(((j.second > maxx && j.second > TroopCounts[Buildings[i][0].WhoBuiltIt] + 1) || (j.second >= maxx - 1 && j.first == Building1)) && Buildings[i][0].type != 'e') {
                 WhoWillUseTheBuilding1 = j.first;
                 maxx = j.first;
             }
             else if(j.second == maxx) {
                 WhoWillUseTheBuilding1 = 'n';
             }
-            if((j.second > maxx  || (j.second >= maxx && j.first == Building2)) && Buildings[i][1].type != 'e') {
+            if(((j.second > maxx && j.second > TroopCounts[Buildings[i][1].WhoBuiltIt] + 1) || (j.second >= maxx - 1 && j.first == Building2)) && Buildings[i][1].type != 'e') {
                 WhoWillUseTheBuilding2 = j.first;
                 maxx = j.first;
             }

@@ -511,11 +511,11 @@ void restart() {
     return;
 }*/
 void DrawCreditsandChangelogScreen() {
-    DrawText("Changelog:\nMAJOR UPDATE", 10, 10, 40, BLACK);
+    DrawText("Changelog:", 10, 10, 40, BLACK);
     DrawText("Credits:", 960, 10, 40, BLACK);
-    DrawText("- Saving and loading\nadded to multiplayer\n- bugfixes", 10, 150, 30, BLACK);
+    DrawText("- Added saving to multiplayer\n- Balance change to buildings\n- A lot of bugfixes\n- Will release pre-alpha 1.0\nif I can finish the bot", 10, 150, 30, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\nTextures:\nÖmer Kaymak\n\nMade with:\nC++/Raylib", 960, 150, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.11.1", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.11.2", 10, 1040, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -679,7 +679,7 @@ void DrawTitleScreen(Texture2D Logo) {
     if(PlayerCount < 6) DrawText("+", 750, 550, 35, BLACK);
     if(PlayerCount > 2) DrawText("-", 700, 550, 35, BLACK);
     DrawText("Play with a bot\n(Disabled for now)", 1050, 450, 50, BLACK);
-    DrawText("Version: Pre-alpha 0.11.1", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.11.2", 10, 1040, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS GAME", 800, 10, 65, BLACK);
     DrawRectangle(1600, 800, 300, 120, GRAY);

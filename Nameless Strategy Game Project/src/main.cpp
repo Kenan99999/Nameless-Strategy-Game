@@ -604,6 +604,7 @@ Texture2D DrawTroopIcon(char type, Texture2D Infantry_Icon, Texture2D Medic_Icon
         case 'p':
             return Plane_Icon;
         default:
+            cout << "ERROR 4" << endl;
             break;
     }
     return Empty_Icon;
@@ -643,6 +644,7 @@ Texture2D DrawBuildingIcon(char type, Texture2D Empty_Icon) {
         case 'e':
             return Empty_Icon;
         default:
+            cout << "ERROR 5" << endl;
             break;
     }
     return Empty_Icon;
@@ -2032,7 +2034,7 @@ int main() {
         if(PlayerCurrent == PLAYER_HOST && Server == nullptr) { //hosting
             Server = enet_host_create(&Host_Address, 6, 1, 0, 0);
             if(Server == nullptr) {
-                cout << "A server already exists" << endl;
+                cout << "A server already exists (ERROR 1)" << endl;
                 PlayerCurrent = PLAYER_NONE;
                 LocalPlay = 0;
                 continue;
@@ -2045,7 +2047,7 @@ int main() {
         if(PlayerCurrent == PLAYER_CLIENT && Client == nullptr) { //joining
             Client = enet_host_create(NULL, 1, 2, 0, 0);
             if(Client == nullptr) {
-                cout << "Error joining to the server" << endl;
+                cout << "Error joining to the server (ERROR 2)" << endl;
                 PlayerCurrent = PLAYER_NONE;
                 LocalPlay = 0;
                 continue;
@@ -2061,7 +2063,7 @@ int main() {
                 cout << "Connecting to " << IP_String << "..." << endl;
                 Peer = enet_host_connect(Client, &Client_Address, 1, 0);
                 if(Peer == NULL) {
-                    cout << "Can't connect" << endl;
+                    cout << "Can't connect (ERROR 3)" << endl;
                     PlayerCurrent = PLAYER_NONE;
                     LocalPlay = 0;
                     JoiningServer = 0;

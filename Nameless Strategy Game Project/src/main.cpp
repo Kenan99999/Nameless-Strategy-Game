@@ -515,7 +515,7 @@ void DrawCreditsandChangelogScreen() {
     DrawText("Credits:", 960, 10, 40, BLACK);
     DrawText("- Added saving to multiplayer\n- Balance change to buildings\n- A lot of bugfixes\n- Will release pre-alpha 1.0\nif I can finish the bot", 10, 150, 30, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\nTextures:\nÖmer Kaymak\n\nMade with:\nC++/Raylib", 960, 150, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.11.2", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.11.2             NEXT UPDATE PRE-ALPHA 1.0 -> 13.09.2026", 10, 1040, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {

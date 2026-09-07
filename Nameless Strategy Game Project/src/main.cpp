@@ -513,9 +513,9 @@ void restart() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:", 10, 10, 40, BLACK);
     DrawText("Credits:", 960, 10, 40, BLACK);
-    DrawText("- Added saving to multiplayer\n- Balance change to buildings\n- A lot of bugfixes\n- Will release pre-alpha 1.0\nif I can finish the bot", 10, 150, 30, BLACK);
+    DrawText("- Added Dumb bot to the game (can't build for now)", 10, 150, 30, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\nTextures:\nÖmer Kaymak\n\nMade with:\nC++/Raylib", 960, 150, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.11.2             NEXT UPDATE PRE-ALPHA 1.0 -> 13.09.2026", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 0.11.3             NEXT MAJOR UPDATE: PRE-ALPHA 1.0 -> 13.09.2026", 10, 1040, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -680,8 +680,8 @@ void DrawTitleScreen(Texture2D Logo) {
     DrawText(TextFormat("Player count: %d", PlayerCount), 250, 550, 35, BLACK);
     if(PlayerCount < 6) DrawText("+", 750, 550, 35, BLACK);
     if(PlayerCount > 2) DrawText("-", 700, 550, 35, BLACK);
-    DrawText("Play with a bot\n(Disabled for now)", 1050, 450, 50, BLACK);
-    DrawText("Version: Pre-alpha 0.11.2", 10, 1040, 30, BLACK);
+    DrawText("Play with a bot\n(Can't build for now)", 1050, 450, 50, BLACK);
+    DrawText("Version: Pre-alpha 0.11.3", 10, 1040, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("NAMELESS GAME", 800, 10, 65, BLACK);
     DrawRectangle(1600, 800, 300, 120, GRAY);
@@ -806,22 +806,22 @@ void DrawTurn(Texture2D WarPoint) {
         DrawTextureEx(WarPoint, {335, 1015}, 0.0f, 0.6f, WHITE);
     }
     else if(Round % PlayerCount == 2){
-        DrawText("GREEN", 230, 970, 40, GREEN);
+        DrawText("Green", 230, 970, 40, GREEN);
         DrawText(TextFormat("%d", Players[Round % PlayerCount].WarPoints), 230, 1015, 40, GREEN);
         DrawTextureEx(WarPoint, {335, 1015}, 0.0f, 0.6f, WHITE);
     }
     else if(Round % PlayerCount == 3){
-        DrawText("YELLOW", 230, 970, 40, YELLOW);
+        DrawText("Yellow", 230, 970, 40, YELLOW);
         DrawText(TextFormat("%d", Players[Round % PlayerCount].WarPoints), 230, 1015, 40, YELLOW);
         DrawTextureEx(WarPoint, {335, 1015}, 0.0f, 0.6f, WHITE);
     }
     else if(Round % PlayerCount == 4){
-        DrawText("ORANGE", 230, 970, 40, ORANGE);
+        DrawText("Orange", 230, 970, 40, ORANGE);
         DrawText(TextFormat("%d", Players[Round % PlayerCount].WarPoints), 230, 1015, 40, ORANGE);
         DrawTextureEx(WarPoint, {335, 1015}, 0.0f, 0.6f, WHITE);
     }
     else if(Round % PlayerCount == 5){
-        DrawText("PURPLE", 230, 970, 40, PURPLE);
+        DrawText("Purple", 230, 970, 40, PURPLE);
         DrawText(TextFormat("%d", Players[Round % PlayerCount].WarPoints), 230, 1015, 40, PURPLE);
         DrawTextureEx(WarPoint, {335, 1015}, 0.0f, 0.6f, WHITE);
     }
@@ -2251,13 +2251,18 @@ int main() {
             else if(GameStarted == false && !CreditScreen && !HowToPlayScreen && MouseX >= 1000 && MouseX <= 1600 && MouseY >= 400 && MouseY <= 600 && !LocalPlay) {
                 GameStarted = true;
                 PlayWithABot = 1;
+                PlayerCurrent = PLAYER_HOTSEAT;
+                PlayerCount = 2;
+                Players.clear();
+                Players.push_back(red);
+                Players.push_back(blue);
             }
             if(!MouseCleared && GameStarted) {
                 ClearMouseCoords();
                 MouseCleared = 1;
             }
         }
-        if(PlayerCount > 1 && (Round + 1) % (5 * (PlayerCount - 1)) == 0 && Round > 0) {
+        if(PlayerCount > 1 && (Round) % (PlayerCount * 2 + 1) == 0 && Round > 0) {
             IncreaseControl = 1;
         }
         else {
@@ -2268,7 +2273,7 @@ int main() {
         BeginDrawing();
             if(GameStarted && !GameShouldEnd && Round < 9999 + GhostRounds && !SaveScreen && !LoadScreen && !SettingsScreen) { // Game Started
                 if(PlayWithABot && Round % 2) {
-                    // BotMove();
+                    BotMove();
                 }
                 ClearBackground(WHITE);
                 if(IncreaseControl && !Increased) IncreaseWarPoints();

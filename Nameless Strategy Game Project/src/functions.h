@@ -4,6 +4,8 @@ void CreateTerrains();
 
 void Saves();
 
+void BotMove();
+
 void CreateMapBonds();
 
 void ClearTroops();

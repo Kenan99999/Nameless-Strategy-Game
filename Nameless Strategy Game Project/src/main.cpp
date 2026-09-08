@@ -29,6 +29,7 @@ bool JoiningServer = 0;
 bool InServer = 0;
 bool LocalPlayersPushedBack = 0;
 vector<char> HostIP;
+vector<string> ChatPhrases;
 // Functions
 void DrawServerScreen() {
     if(PLAYER_NONE == PlayerCurrent) {
@@ -88,14 +89,18 @@ void DrawHowToPlayScreen(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2
     if(IsKeyPressed(KEY_LEFT) && Page > 0) {
         Page--;
     }
-    if(IsKeyPressed(KEY_RIGHT) && Page < 1) {
+    if(IsKeyPressed(KEY_RIGHT) && Page < 2) {
         Page++;
     }
     /*if(IsKeyPressed(KEY_K)) {
         Page = -1;
     }*/
-    if(Page == 1) {
+    if(Page == 2) {
         DrawText("<-", 10, 1050, 25, BLACK);
+    }
+    else if(Page == 1) {
+        DrawText("<-", 10, 1050, 25, BLACK);
+        DrawText("->", 1890, 1050, 25, BLACK);
         DrawTexture(Commander_Icon, 10, 10, WHITE);
         DrawText("This is commander and every player only have 1 of these.\nThe main goal of the game is to kill the enemy commander.\nCommander stats-> Health:1, Attack:0, Defense:0, Heal:0, Air:0\n(Commander gives a 1,5x attack boost to friendly troops)", 112, 10, 25, BLACK);
         DrawTexture(Infantry_Icon, 10, 150, WHITE);
@@ -1575,7 +1580,6 @@ void DrawTroops(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
     }
 }
 
-
 int main() {
     if(TileSelector) {
         TileCenterSelector();
@@ -1593,6 +1597,12 @@ int main() {
     GameplayTips[3] = "Gameplay\ntip:\nDeleting\ngives back\nsome of\nthe\nwarpoints";
     GameplayTips[4] = "Gameplay\ntip:\nMountains\nare a good\nchoice for\ndefending";
     SelectedTip = GameplayTips[GetRandomValue(0,4)];
+    ChatPhrases.push_back("Team?");
+    ChatPhrases.push_back("Dumb");
+    ChatPhrases.push_back("Good luck");
+    ChatPhrases.push_back("Good game");
+    ChatPhrases.push_back("Whoops");
+    ChatPhrases.push_back("Nice!");
     SetTargetFPS(60);
     float TimePlayed = 0;
     InitAudioDevice();

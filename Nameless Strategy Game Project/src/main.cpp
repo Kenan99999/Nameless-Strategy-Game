@@ -1603,6 +1603,7 @@ int main() {
     ChatPhrases.push_back("Good game");
     ChatPhrases.push_back("Whoops");
     ChatPhrases.push_back("Nice!");
+    ChatPhrases.push_back("Attack Tile ");
     SetTargetFPS(60);
     float TimePlayed = 0;
     InitAudioDevice();

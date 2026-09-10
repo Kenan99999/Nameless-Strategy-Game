@@ -102,4 +102,5 @@ struct PACKET_CHAT {
     Packets type = CHAT;
     string Message;
     int PlayerID;
+    int SenderID;
 };

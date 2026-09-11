@@ -36,6 +36,7 @@ void LoadGameTextures() {
     Yellow_png = LoadImage("resources/Yellow.png");
     Orange_png = LoadImage("resources/Orange.png");
     Purple_png = LoadImage("resources/Purple.png");
+    Chat_png = LoadImage("resources/Chat.png");
     Tick = LoadTextureFromImage(Tick_png);
     Infantry_Icon = LoadTextureFromImage(Infantry_png);
     Medic_Icon = LoadTextureFromImage(Medic_png);
@@ -67,4 +68,5 @@ void LoadGameTextures() {
     Yellow = LoadTextureFromImage(Yellow_png);
     Orange = LoadTextureFromImage(Orange_png);
     Purple = LoadTextureFromImage(Purple_png);
+    Chat = LoadTextureFromImage(Chat_png);
 }

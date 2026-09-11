@@ -2483,6 +2483,7 @@ int main() {
     UnloadImage(Yellow_png);
     UnloadImage(Orange_png);
     UnloadImage(Purple_png);
+    UnloadImage(Chat_png);
     UnloadTexture(Map);
     UnloadTexture(Infantry_Icon);
     UnloadTexture(Medic_Icon);
@@ -2514,6 +2515,7 @@ int main() {
     UnloadTexture(Yellow);
     UnloadTexture(Orange);
     UnloadTexture(Purple);
+    UnloadTexture(Chat);
     CloseAudioDevice();
     enet_host_destroy(Server);
     CloseWindow();

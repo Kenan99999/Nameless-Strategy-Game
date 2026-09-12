@@ -1,4 +1,5 @@
 #pragma once
+#include <bits/stdc++.h>
 
 void CreateTerrains();
 
@@ -37,3 +38,5 @@ void DeleteEliminatedTroops();
 bool DeleteTheTroop(int PlayerID, int Tile, int Slot);
 
 bool IsBuildOkay(int PlayerID, int Slot);
+
+void Message();

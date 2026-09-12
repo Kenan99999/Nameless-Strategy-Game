@@ -29,7 +29,6 @@ bool JoiningServer = 0;
 bool InServer = 0;
 bool LocalPlayersPushedBack = 0;
 vector<char> HostIP;
-vector<string> ChatPhrases;
 // Functions
 void DrawServerScreen() {
     if(PLAYER_NONE == PlayerCurrent) {
@@ -322,6 +321,9 @@ void restart() {
     PlayerCurrent = PLAYER_NONE;
     JoiningServer = 0;
     InServer = 0;
+    ChatScreen = 0;
+    TargetID = 0;
+    Phrase = 0;
 }
 /*void Combat() {
     for(int i = 0; i < 47; ++i) {
@@ -833,24 +835,27 @@ void DrawTurn(Texture2D WarPoint) {
     return;
 }
 void ChangeTileSelected() {
-    if(MouseX >= MapBorderX && MouseX <= MapBorderX + Map_png.width && MouseY >= MapBorderY && MouseY <= MapBorderY + Map_png.height && MouseClicked) {
-        PixelX = MouseX - MapBorderX;
-        PixelY = MouseY - MapBorderY;
+    if(!ChatScreen && !SettingsScreen && !SaveScreen && !LoadScreen) {
+        if(MouseX >= MapBorderX && MouseX <= MapBorderX + Map_png.width && MouseY >= MapBorderY && MouseY <= MapBorderY + Map_png.height && MouseClicked) {
+            PixelX = MouseX - MapBorderX;
+            PixelY = MouseY - MapBorderY;
 
-        MouseColor = GetImageColor(Map_png, PixelX, PixelY);
-        if(MouseColor.r > 0) {
-            TileSelected = MouseColor.r / 10;
+            MouseColor = GetImageColor(Map_png, PixelX, PixelY);
+            if(MouseColor.r > 0) {
+                TileSelected = MouseColor.r / 10;
+            }
+            else if(MouseColor.b > 0) {
+                //TileSelected = MouseColor.b / 10 + 38;
+                TileSelected = 0;
+            }
+            else if(MouseColor.g > 0)  {
+                TileSelected = MouseColor.g / 10 + 25;
+            }
         }
-        else if(MouseColor.b > 0) {
-            //TileSelected = MouseColor.b / 10 + 38;
+        else if(MouseClicked) {
             TileSelected = 0;
         }
-        else if(MouseColor.g > 0)  {
-            TileSelected = MouseColor.g / 10 + 25;
-        }
-    }
-    else if(MouseClicked) {
-        TileSelected = 0;
+        return;
     }
     return;
 }
@@ -1589,7 +1594,7 @@ int main() {
     InitWindow(screenWidth, screenHeight, "Nameless Strategy Game");
     LoadGameTextures();
     SetWindowState(FLAG_WINDOW_ALWAYS_RUN);
-    ToggleBorderlessWindowed();
+    //ToggleBorderlessWindowed();
 
     GameplayTips[0] = "Gameplay\ntip:\nWar Points\nwill increase\nrandomly\nevery\n5 rounds";
     GameplayTips[1] = "Gameplay\ntip:\nMedic can't\nheal a\nplane";
@@ -1603,7 +1608,9 @@ int main() {
     ChatPhrases.push_back("Good game");
     ChatPhrases.push_back("Whoops");
     ChatPhrases.push_back("Nice!");
-    ChatPhrases.push_back("Attack Tile ");
+    ChatPhrases.push_back("Yes");
+    ChatPhrases.push_back("No");
+    ChatPhrases.push_back("hahaha");
     SetTargetFPS(60);
     float TimePlayed = 0;
     InitAudioDevice();
@@ -2033,6 +2040,11 @@ int main() {
                             }
                             Round = sync->Round;
                         }
+                        if(*type == CHAT) {
+                            PACKET_CHAT* chat_packet = (PACKET_CHAT*)event.packet->data;
+                            string Mes = ChatPhrases[chat_packet->Message];
+                            //
+                        }
                         if(*type == INCREASE_ROUND) {
                             Round++;
                         }
@@ -2153,7 +2165,7 @@ int main() {
         }
         ClearMouseCoords();
         MouseClicked = IsMouseButtonPressed(0);
-        if(GameStarted && IsKeyPressed(KEY_ESCAPE) && !SettingsScreen && !LoadScreen && !SaveScreen) {
+        if(GameStarted && IsKeyPressed(KEY_ESCAPE) && !SettingsScreen && !LoadScreen && !SaveScreen && !ChatScreen) {
             SettingsScreen = 1;
         }
         else if((GameStarted && IsKeyPressed(KEY_ESCAPE) && SettingsScreen) || LoadScreen || SaveScreen) {
@@ -2174,7 +2186,7 @@ int main() {
         }
         if(MouseClicked && TimePlayed >= 0.95f) { // Mouse Controls
             GetMouseCoords();
-            if(GameStarted && MouseX >= MapBorderX && MouseX <= MapBorderX + Map.width && MouseY >= MapBorderY && MouseY <= MapBorderY + Map.height && !SettingsScreen && !SaveScreen && !LoadScreen) {
+            if(GameStarted && MouseX >= MapBorderX && MouseX <= MapBorderX + Map.width && MouseY >= MapBorderY && MouseY <= MapBorderY + Map.height && !SettingsScreen && !SaveScreen && !LoadScreen && !ChatScreen) {
                 Vector2 MouseCoords = GetScreenToWorld2D(GetMousePosition(), GameCamera);
                 MouseX = MouseCoords.x;
                 MouseY = MouseCoords.y;
@@ -2191,6 +2203,9 @@ int main() {
             }
             else if(!GameStarted && MouseX >= 1000 && MouseX <= 1600 && MouseY >= 620 && MouseY <= 820 && !CreditScreen && !Restarted && !HowToPlayScreen) {
                 LocalPlay = 1;
+            }
+            else if(GameStarted && MouseX >= 10 && MouseX <= 60 && MouseY >= 700 && MouseY <= 750 && PlayerCurrent != PLAYER_HOTSEAT && !SettingsScreen && !SaveScreen && !LoadScreen && !ChatScreen) {
+                ChatScreen = 1;
             }
             else if(Restarted) {
                 Restarted = 0;
@@ -2294,6 +2309,39 @@ int main() {
                 DrawTroops(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
                 EndMode2D();
                 DrawRectangle(0,0,400,1080,WHITE);
+                if(!ChatScreen) {
+                    DrawTexture(Chat, 10, 700, WHITE);
+                }
+                else if(ChatScreen) {
+                    Message();
+                    if(IsKeyPressed(KEY_ENTER) && Phrase > 0) {
+                        PACKET_CHAT Chat_Packet;
+                        Chat_Packet.Message = 1;
+                        Chat_Packet.SenderID = PlayerID;
+                        Chat_Packet.PlayerID = TargetID;;
+                        ENetPacket* chat_p = enet_packet_create(&Chat_Packet, sizeof(Chat_Packet), ENET_PACKET_FLAG_RELIABLE);
+                        if(PlayerCurrent == PLAYER_HOST) {
+                            enet_host_broadcast(Server, 0, chat_p);
+                            TargetID = 0;
+                            ChatScreen = 0;
+                            Phrase = 0;
+                            TempKey = 0;
+                        }
+                        else if(PlayerCurrent == PLAYER_CLIENT) {
+                            enet_peer_send(Peer, 0, chat_p);
+                            TargetID = 0;
+                            ChatScreen = 0;
+                            Phrase = 0;
+                            TempKey = 0;
+                        }
+                    }
+                    if(IsKeyPressed(KEY_ESCAPE)) {
+                        TargetID = 0;
+                        ChatScreen = 0;
+                        Phrase = 0;
+                        TempKey = 0;
+                    }
+                }
                 if(PlayerCurrent == PLAYER_HOTSEAT) {
                     DrawActions();
                     DrawTurn(WarPoint);
@@ -2308,7 +2356,7 @@ int main() {
                     DrawText("Wait for\nyour turn!", 10, 10, 60, RED);
                     DrawRound(screenWidth - MapBorderX, screenHeight); 
                 }
-                else if(PlayerCurrent >= PLAYER_CLIENT) {
+                else if(PlayerCurrent >= PLAYER_CLIENT && !ChatScreen) {
                     DrawText("You are out!", 10, 10, 50, RED);
                     DrawRound(screenWidth - MapBorderX, screenHeight); 
                 }

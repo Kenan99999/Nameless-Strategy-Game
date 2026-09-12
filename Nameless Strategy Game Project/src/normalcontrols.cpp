@@ -26,3 +26,33 @@ void GetMouseCoords() {
     return;
 }
 
+void Message() {
+    DrawRectangle(600, 250, 800, 500, WHITE);
+    DrawTextureEx(Red_Icon, {610, 260}, 0.0f, 10.0f, WHITE);
+    DrawTextureEx(Blue_Icon, {710, 260}, 0.0f, 10.0f, WHITE);
+    if(PlayerCount > 2) DrawTextureEx(Green, {610, 360}, 0.0f, 10.0f, WHITE);
+    if(PlayerCount > 3) DrawTextureEx(Yellow, {710, 360}, 0.0f, 10.0f, WHITE);
+    if(PlayerCount > 4) DrawTextureEx(Orange, {610, 460}, 0.0f, 10.0f, WHITE);
+    if(PlayerCount > 5) DrawTextureEx(Purple, {710, 460}, 0.0f, 10.0f, WHITE);
+    if(TargetID > 0 && ((MouseX - 510) / 100) + ((MouseY - 260) / 100) * 2 == TargetID) {
+        TargetID = 0;
+    }
+    else if(MouseX >= 610 && MouseX <= 810 && MouseY >= 260 && MouseY <= 560) {
+        TargetID = ((MouseX - 510) / 100) + ((MouseY - 260) / 100) * 2;
+        if(TargetID > PlayerCount) {
+            TargetID = 0;
+        }
+    }
+    TempKey = GetKeyPressed();
+    if(TempKey > KEY_ZERO && TempKey <= KEY_NINE) {
+        Phrase = TempKey - 48;
+    }
+    for(int i = 0; i < ChatPhrases.size(); ++i) {
+        DrawText(TextFormat("%d. %s", i + 1, ChatPhrases[i].c_str()), 900, 300 + 40 * i, 25, BLACK);
+    }
+    if(TargetID > 0) {
+        DrawTexture(Tick, 610 + 100 * ((TargetID - 1) % 2), 260 + 100 * ((TargetID - 1) / 2), WHITE);
+    }
+    DrawText(TextFormat("Selected: %d", Phrase), 610, 670, 25, BLACK);
+    return;
+}

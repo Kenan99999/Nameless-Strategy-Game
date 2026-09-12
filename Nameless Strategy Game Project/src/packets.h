@@ -100,7 +100,7 @@ struct PACKET_SYNC_THE_GAME {
 
 struct PACKET_CHAT {
     Packets type = CHAT;
-    string Message;
+    int Message;
     int PlayerID;
     int SenderID;
 };

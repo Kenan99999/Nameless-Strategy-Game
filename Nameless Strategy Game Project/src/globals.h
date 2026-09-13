@@ -296,8 +296,8 @@ inline vector<string> ChatPhrases;
 inline vector<Player> Players;
 inline int TargetID;
 inline string SelectedTip;
-inline const int screenWidth = 1720;
-inline const int screenHeight = 880;
+inline const int screenWidth = 1920;
+inline const int screenHeight = 1080;
 
 inline const int MapBorderX = 400;
 inline const int MapBorderY = 0;

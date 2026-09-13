@@ -1594,7 +1594,7 @@ int main() {
     InitWindow(screenWidth, screenHeight, "Nameless Strategy Game");
     LoadGameTextures();
     SetWindowState(FLAG_WINDOW_ALWAYS_RUN);
-    //ToggleBorderlessWindowed();
+    ToggleBorderlessWindowed();
 
     GameplayTips[0] = "Gameplay\ntip:\nWar Points\nwill increase\nrandomly\nevery\n5 rounds";
     GameplayTips[1] = "Gameplay\ntip:\nMedic can't\nheal a\nplane";

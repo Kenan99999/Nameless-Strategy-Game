@@ -2043,7 +2043,8 @@ int main() {
                         if(*type == CHAT) {
                             PACKET_CHAT* chat_packet = (PACKET_CHAT*)event.packet->data;
                             string Mes = ChatPhrases[chat_packet->Message];
-                            //
+                            int ID = chat_packet->PlayerID;
+                            int Sender = (int)(uintptr_t)event.peer->data;
                         }
                         if(*type == INCREASE_ROUND) {
                             Round++;

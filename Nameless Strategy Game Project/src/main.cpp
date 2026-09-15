@@ -1818,6 +1818,13 @@ int main() {
                                 TileSelected = 0;
                             }
                         }
+                        if(*type == CHAT) {
+                            PACKET_CHAT* chat = (PACKET_CHAT*)event.packet->data;
+                            int Sender = (int)(uintptr_t)event.peer->data;
+                            int To = chat->PlayerID;
+                            int Mes = chat->Message;
+                            //
+                        }
                         enet_packet_destroy(event.packet);
                         break;
                     }
@@ -2044,7 +2051,12 @@ int main() {
                             PACKET_CHAT* chat_packet = (PACKET_CHAT*)event.packet->data;
                             string Mes = ChatPhrases[chat_packet->Message];
                             int ID = chat_packet->PlayerID;
-                            int Sender = (int)(uintptr_t)event.peer->data;
+                            int Sender = chat_packet->SenderID;
+                            if(ID == 0 || ID == PlayerID) {
+                                cout << "Player " << Sender << " says: ";
+                                cout << Mes;
+                                if(ID != 0) cout << " to you" << endl;
+                            }
                         }
                         if(*type == INCREASE_ROUND) {
                             Round++;

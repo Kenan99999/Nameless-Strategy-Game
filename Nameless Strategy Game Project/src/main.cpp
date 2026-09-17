@@ -1823,7 +1823,21 @@ int main() {
                             int Sender = (int)(uintptr_t)event.peer->data;
                             int To = chat->PlayerID;
                             int Mes = chat->Message;
-                            //
+                            PACKET_CHAT chat_p;
+                            chat_p.Message = Mes;
+                            chat_p.PlayerID = To;
+                            chat_p.SenderID = Sender;
+                            ENetPacket* chat_packet = enet_packet_create(&chat_p, sizeof(chat_p), ENET_PACKET_FLAG_RELIABLE);
+                            if(To != PlayerID) {
+                                enet_host_broadcast(Server, 0, chat_packet);
+                                cout << "Player " << Sender << " says: ";
+                                cout << Mes;
+                            }
+                            else {
+                                cout << "Player " << Sender << " says: ";
+                                cout << Mes;
+                                if(To != 0) cout << " to you" << endl;
+                            }
                         }
                         enet_packet_destroy(event.packet);
                         break;

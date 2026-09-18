@@ -26,7 +26,7 @@ void GetMouseCoords() {
     return;
 }
 
-void Message() {
+void Message(int PlayerID) {
     DrawRectangle(600, 250, 800, 500, WHITE);
     DrawTextureEx(Red_Icon, {610, 260}, 0.0f, 10.0f, WHITE);
     DrawTextureEx(Blue_Icon, {710, 260}, 0.0f, 10.0f, WHITE);
@@ -34,6 +34,8 @@ void Message() {
     if(PlayerCount > 3) DrawTextureEx(Yellow, {710, 360}, 0.0f, 10.0f, WHITE);
     if(PlayerCount > 4) DrawTextureEx(Orange, {610, 460}, 0.0f, 10.0f, WHITE);
     if(PlayerCount > 5) DrawTextureEx(Purple, {710, 460}, 0.0f, 10.0f, WHITE);
+    if (LastMessage.second.first != 0) DrawText(TextFormat("Player %d says:\n %s", LastMessage.second.first, ChatPhrases[LastMessage.first].c_str()), 610, 570, 20, BLACK);
+    if (LastMessage.second.second == PlayerID) DrawText(TextFormat("(To You)"), 610, 620, 20, BLACK);
     if(TargetID > 0 && ((MouseX - 510) / 100) + ((MouseY - 260) / 100) * 2 == TargetID) {
         TargetID = 0;
     }

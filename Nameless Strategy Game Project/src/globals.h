@@ -376,3 +376,5 @@ inline map<int, troop> MovingTroops;
 inline map<int, troop> MovingTroopsCopy;
 inline vector<int> Ticks;
 inline int PointDifferance;
+
+inline pair<int, pair<int, int>> LastMessage;

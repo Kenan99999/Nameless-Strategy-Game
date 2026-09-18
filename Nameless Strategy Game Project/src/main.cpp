@@ -324,6 +324,7 @@ void restart() {
     ChatScreen = 0;
     TargetID = 0;
     Phrase = 0;
+    LastMessage = {0, {0, 0}};
 }
 /*void Combat() {
     for(int i = 0; i < 47; ++i) {
@@ -1830,14 +1831,8 @@ int main() {
                             ENetPacket* chat_packet = enet_packet_create(&chat_p, sizeof(chat_p), ENET_PACKET_FLAG_RELIABLE);
                             if(To != PlayerID) {
                                 enet_host_broadcast(Server, 0, chat_packet);
-                                cout << "Player " << Sender << " says: ";
-                                cout << Mes;
                             }
-                            else {
-                                cout << "Player " << Sender << " says: ";
-                                cout << Mes;
-                                if(To != 0) cout << " to you" << endl;
-                            }
+                            LastMessage = {Mes, {Sender, To}};
                         }
                         enet_packet_destroy(event.packet);
                         break;
@@ -2063,13 +2058,9 @@ int main() {
                         }
                         if(*type == CHAT) {
                             PACKET_CHAT* chat_packet = (PACKET_CHAT*)event.packet->data;
-                            string Mes = ChatPhrases[chat_packet->Message];
                             int ID = chat_packet->PlayerID;
-                            int Sender = chat_packet->SenderID;
                             if(ID == 0 || ID == PlayerID) {
-                                cout << "Player " << Sender << " says: ";
-                                cout << Mes;
-                                if(ID != 0) cout << " to you" << endl;
+                                LastMessage = {chat_packet->Message, {chat_packet->SenderID, ID}};
                             }
                         }
                         if(*type == INCREASE_ROUND) {
@@ -2340,7 +2331,7 @@ int main() {
                     DrawTexture(Chat, 10, 700, WHITE);
                 }
                 else if(ChatScreen) {
-                    Message();
+                    Message(PlayerID);
                     if(IsKeyPressed(KEY_ENTER) && Phrase > 0) {
                         PACKET_CHAT Chat_Packet;
                         Chat_Packet.Message = 1;

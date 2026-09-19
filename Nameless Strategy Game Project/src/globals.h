@@ -378,3 +378,5 @@ inline vector<int> Ticks;
 inline int PointDifferance;
 
 inline pair<int, pair<int, int>> LastMessage;
+
+inline bool MusicPlaying = 0;

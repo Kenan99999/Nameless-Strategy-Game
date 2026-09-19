@@ -15,6 +15,8 @@ using namespace filesystem;
 
 
 Music Intro;
+Sound Lose;
+Sound Win;
 enum PlayerType {
     PLAYER_NONE = 0,
     PLAYER_HOTSEAT = 1,
@@ -325,6 +327,7 @@ void restart() {
     TargetID = 0;
     Phrase = 0;
     LastMessage = {0, {0, 0}};
+    MusicPlaying = 0;
 }
 /*void Combat() {
     for(int i = 0; i < 47; ++i) {
@@ -1615,6 +1618,8 @@ int main() {
     SetTargetFPS(60);
     float TimePlayed = 0;
     InitAudioDevice();
+    Win = LoadSound("sounds/win.mp3");
+    Lose = LoadSound("sounds/lose.mp3");
     Intro = LoadMusicStream("sounds/intro.mp3");
     PlayMusicStream(Intro);
     SetMusicVolume(Intro, 1.0f);
@@ -2449,6 +2454,7 @@ int main() {
                     if(MouseClicked) {
                         Restarted = 1;
                         goto restart;
+                        
                     }  
                 }
                 else if(Players[0].CommanderAvalible) {
@@ -2458,6 +2464,7 @@ int main() {
                     if(MouseClicked) {
                         Restarted = 1;
                         goto restart;
+                        
                     }
                 }
                 else if(Players[1].CommanderAvalible) {
@@ -2467,6 +2474,7 @@ int main() {
                     if(MouseClicked) {
                         Restarted = 1;
                         goto restart;
+                        
                     }
                 }
                 else if(Players[2].CommanderAvalible) {
@@ -2476,6 +2484,7 @@ int main() {
                     if(MouseClicked) {
                         Restarted = 1;
                         goto restart;
+                        
                     }
                 }
                 else if(Players[3].CommanderAvalible) {
@@ -2485,6 +2494,7 @@ int main() {
                     if(MouseClicked) {
                         Restarted = 1;
                         goto restart;
+                        
                     }
                 }
                 else if(Players[4].CommanderAvalible) {
@@ -2494,6 +2504,7 @@ int main() {
                     if(MouseClicked) {
                         Restarted = 1;
                         goto restart;
+                        
                     }
                 }
                 else if(Players[5].CommanderAvalible) {
@@ -2504,6 +2515,18 @@ int main() {
                         Restarted = 1;
                         goto restart;
                     }
+                }
+                if(Players[PlayerID - 1].CommanderAvalible && MusicPlaying == 0) {
+                    PlaySound(Win);
+                    SetSoundVolume(Win, 1.0f);
+                    SetSoundPan(Win, 0.0f);
+                    MusicPlaying = 1;
+                }
+                else if(MusicPlaying == 0) {
+                    PlaySound(Lose);
+                    SetSoundVolume(Lose, 1.0f);
+                    SetSoundPan(Lose, 0.0f);
+                    MusicPlaying = 1;
                 }
             }
             else {

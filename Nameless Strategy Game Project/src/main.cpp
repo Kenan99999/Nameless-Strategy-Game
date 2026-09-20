@@ -522,11 +522,11 @@ void restart() {
     return;
 }*/
 void DrawCreditsandChangelogScreen() {
-    DrawText("Changelog:", 10, 10, 40, BLACK);
+    DrawText("Changelog: Pre-alpha RELEASE", 10, 10, 40, BLACK);
     DrawText("Credits:", 960, 10, 40, BLACK);
-    DrawText("- Added Dumb bot to the game (can't build for now)", 10, 150, 30, BLACK);
+    DrawText("- Added chat\n- Bugfixes", 10, 150, 30, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\nTextures:\nÖmer Kaymak\n\nMade with:\nC++/Raylib", 960, 150, 30, BLACK);
-    DrawText("Version: Pre-alpha 0.11.3             NEXT MAJOR UPDATE: PRE-ALPHA 1.0 -> 13.09.2026", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 1.0            NEXT MAJOR UPDATE: PRE-ALPHA 2.0 -> Between 18/10/2026 and 15/11/2026", 10, 1040, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -692,9 +692,9 @@ void DrawTitleScreen(Texture2D Logo) {
     if(PlayerCount < 6) DrawText("+", 750, 550, 35, BLACK);
     if(PlayerCount > 2) DrawText("-", 700, 550, 35, BLACK);
     DrawText("Play with a bot\n(Can't build for now)", 1050, 450, 50, BLACK);
-    DrawText("Version: Pre-alpha 0.11.3", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 1.0", 10, 1040, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
-    DrawText("NAMELESS GAME", 800, 10, 65, BLACK);
+    DrawText("Field of Commanders", 800, 10, 65, BLACK);
     DrawRectangle(1600, 800, 300, 120, GRAY);
     DrawText("Changelog and\nCredits", 1610, 810, 35, BLACK);
     DrawRectangle(1600, 940, 300, 120, GRAY);
@@ -2332,7 +2332,7 @@ int main() {
                 DrawTroops(Infantry_Icon, Medic_Icon, Commander_Icon, Empty_Icon, Red_Icon, Blue_Icon, Low_health, Medium_health, High_health, Full_health, Artillery_Icon, Tank_Icon, Plane_Icon);
                 EndMode2D();
                 DrawRectangle(0,0,400,1080,WHITE);
-                if(!ChatScreen) {
+                if(!ChatScreen && PlayerCurrent != PLAYER_HOTSEAT) {
                     DrawTexture(Chat, 10, 700, WHITE);
                 }
                 else if(ChatScreen) {
@@ -2477,7 +2477,7 @@ int main() {
                         
                     }
                 }
-                else if(Players[2].CommanderAvalible) {
+                else if(PlayerCount > 2 && Players[2].CommanderAvalible) {
                     ClearBackground(GREEN);
                     DrawText("GREEN WON!", 800, 400, 100, BLACK);
                     DrawText("Click anywhere to restart", 700, 800, 50, BLACK);
@@ -2487,7 +2487,7 @@ int main() {
                         
                     }
                 }
-                else if(Players[3].CommanderAvalible) {
+                else if(PlayerCount > 3 && Players[3].CommanderAvalible) {
                     ClearBackground(YELLOW);
                     DrawText("YELLOW WON!", 800, 400, 100, BLACK);
                     DrawText("Click anywhere to restart", 700, 800, 50, BLACK);
@@ -2497,7 +2497,7 @@ int main() {
                         
                     }
                 }
-                else if(Players[4].CommanderAvalible) {
+                else if(PlayerCount > 4 && Players[4].CommanderAvalible) {
                     ClearBackground(ORANGE);
                     DrawText("ORANGE WON!", 800, 400, 100, BLACK);
                     DrawText("Click anywhere to restart", 700, 800, 50, BLACK);
@@ -2507,7 +2507,7 @@ int main() {
                         
                     }
                 }
-                else if(Players[5].CommanderAvalible) {
+                else if(PlayerCount > 5 && Players[5].CommanderAvalible) {
                     ClearBackground(PURPLE);
                     DrawText("PURPLE WON!", 800, 400, 100, BLACK);
                     DrawText("Click anywhere to restart", 700, 800, 50, BLACK);
@@ -2516,11 +2516,23 @@ int main() {
                         goto restart;
                     }
                 }
-                if(Players[PlayerID - 1].CommanderAvalible && MusicPlaying == 0) {
+                if(PlayerCurrent != PLAYER_HOTSEAT && Players[PlayerID - 1].CommanderAvalible && MusicPlaying == 0) {
                     PlaySound(Win);
                     SetSoundVolume(Win, 1.0f);
                     SetSoundPan(Win, 0.0f);
                     MusicPlaying = 1;
+                }
+                else if(PlayerCurrent == PLAYER_HOTSEAT && PlayWithABot == 0) {
+                    PlaySound(Win);
+                    SetSoundVolume(Win, 1.0f);
+                    SetSoundPan(Win, 0.0f);
+                    MusicPlaying = 1;
+                }
+                else if(PlayerCurrent == PLAYER_HOTSEAT && PlayWithABot && Players[1].CommanderAvalible == 0) {
+                    PlaySound(Win);
+                    SetSoundVolume(Win, 1.0f);
+                    SetSoundPan(Win, 0.0f);
+                    MusicPlaying = 1;     
                 }
                 else if(MusicPlaying == 0) {
                     PlaySound(Lose);
@@ -2538,7 +2550,6 @@ int main() {
                     goto restart;
                 }  
             }
-
         EndDrawing();
     }
     UnloadImage(Map_png);

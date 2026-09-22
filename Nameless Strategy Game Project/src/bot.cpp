@@ -198,6 +198,9 @@
             else if(Move == 5) {
                 MoveMade = 1;
             }
+            else if(Move == 6) {
+                int Building = GetRandomValue(1, 5);
+            }
         }
     }
     Round++;

@@ -200,6 +200,16 @@
             }
             else if(Move == 6) {
                 int Building = GetRandomValue(1, 5);
+                int Tile = GetRandomValue(1, 47);
+                if (Building == 1) {
+                    if(Buildings[Tile - 1][0].type == 'e') {
+                        if(Players[1].WarPoints >= 10) {
+                            Buildings[Tile - 1][0] = trench;
+                            Players[1].WarPoints -= 10;
+                        }
+                    }
+                }
+                MoveMade = 1;
             }
         }
     }

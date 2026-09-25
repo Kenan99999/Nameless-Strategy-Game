@@ -206,7 +206,11 @@
                         if(Players[1].WarPoints >= 10) {
                             Buildings[Tile - 1][0] = trench;
                             Players[1].WarPoints -= 10;
+                            MoveMade = 1;
                         }
+                    }
+                    else if (Buildings[Tile - 1][1].type == 'e'){
+                        //
                     }
                 }
                 MoveMade = 1;

@@ -210,7 +210,11 @@
                         }
                     }
                     else if (Buildings[Tile - 1][1].type == 'e'){
-                        //
+                        if(Players[1].WarPoints >= 10) {
+                            Buildings[Tile - 1][1] = trench;
+                            Players[1].WarPoints -= 10;
+                            MoveMade = 1;
+                        }
                     }
                 }
                 MoveMade = 1;

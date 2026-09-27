@@ -8,7 +8,7 @@
     bool MoveMade = 0;
     int Move = 0;
     while(!MoveMade) {
-        Move = GetRandomValue(1, 5); // 1: Buy 2: Place 3: Move 4: Delete 5: SkipRound 6:Build (not added)
+        Move = GetRandomValue(1, 6); // 1: Buy 2: Place 3: Move 4: Delete 5: SkipRound 6:Build
         if(Round == 1) {
             int BotCommander = GetRandomValue(1, 47);
             if(Troops[BotCommander - 1][0].type == 'e') {
@@ -205,6 +205,7 @@
                     if(Buildings[Tile - 1][0].type == 'e') {
                         if(Players[1].WarPoints >= 10) {
                             Buildings[Tile - 1][0] = trench;
+                            Buildings[Tile - 1][0].WhoBuiltIt = 'b';
                             Players[1].WarPoints -= 10;
                             MoveMade = 1;
                         }
@@ -212,12 +213,84 @@
                     else if (Buildings[Tile - 1][1].type == 'e'){
                         if(Players[1].WarPoints >= 10) {
                             Buildings[Tile - 1][1] = trench;
+                            Buildings[Tile - 1][1].WhoBuiltIt = 'b';
                             Players[1].WarPoints -= 10;
                             MoveMade = 1;
                         }
                     }
                 }
-                MoveMade = 1;
+                else if (Building == 2) {
+                    if(Buildings[Tile - 1][0].type == 'e') {
+                        if(Players[1].WarPoints >= 10) {
+                            Buildings[Tile - 1][0] = field_hospital;
+                            Buildings[Tile - 1][0].WhoBuiltIt = 'b';
+                            Players[1].WarPoints -= 10;
+                            MoveMade = 1;
+                        }
+                    }
+                    else if (Buildings[Tile - 1][1].type == 'e'){
+                        if(Players[1].WarPoints >= 10) {
+                            Buildings[Tile - 1][1] = field_hospital;
+                            Buildings[Tile - 1][1].WhoBuiltIt = 'b';
+                            Players[1].WarPoints -= 10;
+                            MoveMade = 1;
+                        }
+                    }
+                }
+                else if (Building == 3) {
+                    if(Buildings[Tile - 1][0].type == 'e') {
+                        if(Players[1].WarPoints >= 15) {
+                            Buildings[Tile - 1][0] = anti_air;
+                            Buildings[Tile - 1][0].WhoBuiltIt = 'b';
+                            Players[1].WarPoints -= 15;
+                            MoveMade = 1;
+                        }
+                    }
+                    else if (Buildings[Tile - 1][1].type == 'e'){
+                        if(Players[1].WarPoints >= 15) {
+                            Buildings[Tile - 1][1] = anti_air;
+                            Buildings[Tile - 1][1].WhoBuiltIt = 'b';
+                            Players[1].WarPoints -= 15;
+                            MoveMade = 1;
+                        }
+                    }
+                }
+                else if (Building == 4) {
+                    if(Buildings[Tile - 1][0].type == 'e') {
+                        if(Players[1].WarPoints >= 15) {
+                            Buildings[Tile - 1][0] = repair_workshop;
+                            Buildings[Tile - 1][0].WhoBuiltIt = 'b';
+                            Players[1].WarPoints -= 15;
+                            MoveMade = 1;
+                        }
+                    }
+                    else if (Buildings[Tile - 1][1].type == 'e'){
+                        if(Players[1].WarPoints >= 15) {
+                            Buildings[Tile - 1][1] = repair_workshop;
+                            Buildings[Tile - 1][1].WhoBuiltIt = 'b';
+                            Players[1].WarPoints -= 15;
+                            MoveMade = 1;
+                        }
+                    }
+                }
+                else if (Building == 2) {
+                    if(Buildings[Tile - 1][0].type == 'e') {
+                        if(Players[1].WarPoints >= 20) {
+                            Buildings[Tile - 1][0] = army_house;
+                            Buildings[Tile - 1][0].WhoBuiltIt = 'b';
+                            Players[1].WarPoints -= 10;
+                            MoveMade = 1;
+                        }
+                    }
+                    else if (Buildings[Tile - 1][1].type == 'e'){
+                        if(Players[1].WarPoints >= 20) {
+                            Buildings[Tile - 1][1] = army_house;
+                            Buildings[Tile - 1][1].WhoBuiltIt = 'b';
+                            Players[1].WarPoints -= 10;
+                            MoveMade = 1;
+                        }
+                    }
+                }
             }
         }
     }

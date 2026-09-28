@@ -2138,9 +2138,10 @@ int main() {
         }
         else PauseMusicStream(Intro);
         TimePlayed = GetMusicTimePlayed(Intro)/GetMusicTimeLength(Intro);
-        /*if (DebugMode == 1) {
-            OpenDebugScreen();
-        }*/
+        if (DebugMode == 1) {
+            DebugScreen();
+            continue;
+        }
         if(GameStarted && !TroopsCleared) {
             ClearTroops();
             TroopsCleared = 1;

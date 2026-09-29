@@ -21,6 +21,7 @@ void DebugScreen() {
     t[2] = artillery;
     t[3] = tank;
     t[4] = plane;
+    b[0] = trench;
     for (int i = 0; i < 5; ++i ) {
         DrawText(TextFormat(""));
     }

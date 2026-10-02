@@ -28,6 +28,7 @@ void DebugScreen() {
     b[4] = army_house;
     for (int i = 0; i < 5; ++i ) {
         DrawText(TextFormat(""));
+        DrawText("");
     }
     return;
 }

@@ -27,7 +27,7 @@ void DebugScreen() {
     b[3] = repair_workshop;
     b[4] = army_house;
     for (int i = 0; i < 5; ++i ) {
-        DrawText(TextFormat(""));
+        DrawText(TextFormat("%d", Infantry_Cost));
         DrawText("");
     }
     return;

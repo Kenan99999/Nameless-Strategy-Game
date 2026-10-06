@@ -28,7 +28,8 @@ void DebugScreen() {
     b[4] = army_house;
     for (int i = 0; i < 5; ++i ) {
         DrawText(TextFormat("%d", Infantry_Cost), 10, 10, 30, BLACK);
-        DrawText("");
+        DrawText(TextFormat("%d", Medic_Cost), 10, 60, 30, BLACK);
+        DrawText(TextFormat("%d", Artillery_Cost), 10, 110, 30, BLACK);
     }
     return;
 }

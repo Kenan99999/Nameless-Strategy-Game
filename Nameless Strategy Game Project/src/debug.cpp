@@ -30,6 +30,7 @@ void DebugScreen() {
         DrawText(TextFormat("%d", Infantry_Cost), 10, 10, 30, BLACK);
         DrawText(TextFormat("%d", Medic_Cost), 10, 60, 30, BLACK);
         DrawText(TextFormat("%d", Artillery_Cost), 10, 110, 30, BLACK);
+        DrawText(TextFormat("%d", Tank_Cost), 10, 160, 30, BLACK);
     }
     return;
 }

@@ -31,6 +31,7 @@ bool JoiningServer = 0;
 bool InServer = 0;
 bool LocalPlayersPushedBack = 0;
 bool DebugMode = 0;
+
 vector<char> HostIP;
 // Functions
 void DrawServerScreen() {
@@ -526,9 +527,9 @@ void restart() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:", 10, 10, 40, BLACK);
     DrawText("Credits:", 960, 10, 40, BLACK);
-    DrawText("- Bot can build now!", 10, 150, 30, BLACK);
+    DrawText("- Debug mode!", 10, 150, 30, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\nTextures:\nÖmer Kaymak\n\nMade with:\nC++/Raylib", 960, 150, 30, BLACK);
-    DrawText("Version: Pre-alpha 1.0.1            NEXT MAJOR UPDATE: PRE-ALPHA 2.0 -> Between 18/10/2026 and 15/11/2026", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 1.0.1.1            NEXT MAJOR UPDATE: PRE-ALPHA 1.1 -> Between 18/10/2026 and 15/11/2026", 10, 1040, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -694,7 +695,7 @@ void DrawTitleScreen(Texture2D Logo) {
     if(PlayerCount < 6) DrawText("+", 750, 550, 35, BLACK);
     if(PlayerCount > 2) DrawText("-", 700, 550, 35, BLACK);
     DrawText("Play with a bot", 1050, 450, 50, BLACK);
-    DrawText("Version: Pre-alpha 1.0.1", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 1.0.1.1", 10, 1040, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("Field of Commanders", 800, 10, 65, BLACK);
     DrawRectangle(1600, 800, 300, 120, GRAY);
@@ -1592,6 +1593,21 @@ void DrawTroops(Texture2D Infantry_Icon, Texture2D Medic_Icon, Texture2D Command
 }
 
 int main() {
+    costs[0] = Infantry_Cost;
+    costs[1] = Medic_Cost;
+    costs[2] = Artillery_Cost;
+    costs[3] = Tank_Cost;
+    costs[4] = Plane_Cost;
+    t[0] = infantry;
+    t[1] = medic;
+    t[2] = artillery;
+    t[3] = tank;
+    t[4] = plane;
+    b[0] = trench;
+    b[1] = field_hospital;
+    b[2] = anti_air;
+    b[3] = repair_workshop;
+    b[4] = army_house;
     if(TileSelector) {
         TileCenterSelector();
     }
@@ -1599,6 +1615,11 @@ int main() {
     CreateMapBonds();
     InitWindow(screenWidth, screenHeight, "Nameless Strategy Game");
     LoadGameTextures();
+    texture[0] = Infantry_Icon;
+    texture[1] = Medic_Icon;
+    texture[2] = Artillery_Icon;
+    texture[3] = Tank_Icon;
+    texture[4] = Plane_Icon;
     SetWindowState(FLAG_WINDOW_ALWAYS_RUN);
     ToggleBorderlessWindowed();
 
@@ -2138,10 +2159,6 @@ int main() {
         }
         else PauseMusicStream(Intro);
         TimePlayed = GetMusicTimePlayed(Intro)/GetMusicTimeLength(Intro);
-        if (DebugMode == 1) {
-            DebugScreen();
-            continue;
-        }
         if(GameStarted && !TroopsCleared) {
             ClearTroops();
             TroopsCleared = 1;
@@ -2331,7 +2348,12 @@ int main() {
         }
 
         BeginDrawing();
-            if(GameStarted && !GameShouldEnd && Round < 9999 + GhostRounds && !SaveScreen && !LoadScreen && !SettingsScreen) { // Game Started
+            if (DebugMode == 1) {
+                if(DebugScreen()) {
+                    DebugMode = 0;
+                }
+            }
+            else if(GameStarted && !GameShouldEnd && Round < 9999 + GhostRounds && !SaveScreen && !LoadScreen && !SettingsScreen) { // Game Started
                 if(PlayWithABot && Round % 2) {
                     BotMove();
                 }

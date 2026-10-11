@@ -13,25 +13,19 @@ typedef struct tagMSG *LPMSG;
 using namespace std;
 using namespace filesystem;
 
-void DebugScreen() {
-    troop t[5];
-    building b[5];
-    t[0] = infantry;
-    t[1] = medic;
-    t[2] = artillery;
-    t[3] = tank;
-    t[4] = plane;
-    b[0] = trench;
-    b[1] = field_hospital;
-    b[2] = anti_air;
-    b[3] = repair_workshop;
-    b[4] = army_house;
-    for (int i = 0; i < 5; ++i ) {
-        DrawText(TextFormat("%d", Infantry_Cost), 10, 10, 30, BLACK);
-        DrawText(TextFormat("%d", Medic_Cost), 10, 60, 30, BLACK);
-        DrawText(TextFormat("%d", Artillery_Cost), 10, 110, 30, BLACK);
-        DrawText(TextFormat("%d", Tank_Cost), 10, 160, 30, BLACK);
-        DrawText(TextFormat("%d", Plane_Cost), 10, 210, 30, BLACK);
-    }
-    return;
+bool DebugScreen() {
+        if(IsKeyPressed(KEY_ESCAPE)) {
+            return 1;
+        }
+        ClearBackground(WHITE);
+        for (int i = 0; i < 5; ++i ) {
+            DrawTexture(texture[i], 10, i * 200 + 10, WHITE);
+            DrawText(TextFormat("Attack: %.1f", t[i].attack), 120, i * 200 + 10, 25, BLACK);
+            DrawText(TextFormat("Defense: %.1f", t[i].defense), 120, i * 200 + 40, 25, BLACK);
+            DrawText(TextFormat("Health: %.1f", t[i].health), 120, i * 200 + 70, 25, BLACK);
+            DrawText(TextFormat("Air: %.1f", t[i].air_attack), 120, i * 200 + 100, 25, BLACK);
+            DrawText(TextFormat("Heal: %.1f", t[i].heal), 120, i * 200 + 130, 25, BLACK);
+            DrawText(TextFormat("Cost: %d", costs[i]), 120, i * 200 + 160, 25, BLACK);
+        }
+    return 0;
 }

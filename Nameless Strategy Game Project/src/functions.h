@@ -40,3 +40,5 @@ bool DeleteTheTroop(int PlayerID, int Tile, int Slot);
 bool IsBuildOkay(int PlayerID, int Slot);
 
 void Message(int PlayerID);
+
+bool DebugScreen();

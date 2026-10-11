@@ -380,3 +380,8 @@ inline int PointDifferance;
 inline pair<int, pair<int, int>> LastMessage;
 
 inline bool MusicPlaying = 0;
+
+inline troop t[5];
+inline Texture2D texture[5];
+inline building b[5];
+inline int costs[5];

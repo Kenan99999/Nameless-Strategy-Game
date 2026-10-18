@@ -3,7 +3,6 @@
 
 
 
-// Build ekle
  void BotMove() {
     bool MoveMade = 0;
     int Move = 0;

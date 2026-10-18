@@ -527,9 +527,9 @@ void restart() {
 void DrawCreditsandChangelogScreen() {
     DrawText("Changelog:", 10, 10, 40, BLACK);
     DrawText("Credits:", 960, 10, 40, BLACK);
-    DrawText("- Debug mode!", 10, 150, 30, BLACK);
+    DrawText("- Debug mode! (improved)", 10, 150, 30, BLACK);
     DrawText("Main Developer:\nKenan Mert Pamuk\nTextures:\nÖmer Kaymak\n\nMade with:\nC++/Raylib", 960, 150, 30, BLACK);
-    DrawText("Version: Pre-alpha 1.0.1.1            NEXT MAJOR UPDATE: PRE-ALPHA 1.1 -> Between 18/10/2026 and 15/11/2026", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 1.0.2            NEXT MAJOR UPDATE: PRE-ALPHA 1.1 -> Between 18/10/2026 and 15/11/2026", 10, 1040, 30, BLACK);
 }
 Texture2D DrawTroopHealth(int Health, char type, Texture2D Low_health, Texture2D Medium_health, Texture2D High_health, Texture2D Full_health) {
     switch(type) {
@@ -695,7 +695,7 @@ void DrawTitleScreen(Texture2D Logo) {
     if(PlayerCount < 6) DrawText("+", 750, 550, 35, BLACK);
     if(PlayerCount > 2) DrawText("-", 700, 550, 35, BLACK);
     DrawText("Play with a bot", 1050, 450, 50, BLACK);
-    DrawText("Version: Pre-alpha 1.0.1.1", 10, 1040, 30, BLACK);
+    DrawText("Version: Pre-alpha 1.0.2", 10, 1040, 30, BLACK);
     DrawTextureEx(Logo, {10, 10}, 0.0f, 2.0f, WHITE);
     DrawText("Field of Commanders", 800, 10, 65, BLACK);
     DrawRectangle(1600, 800, 300, 120, GRAY);
@@ -2351,6 +2351,7 @@ int main() {
             if (DebugMode == 1) {
                 if(DebugScreen()) {
                     DebugMode = 0;
+                    index = 0;
                 }
             }
             else if(GameStarted && !GameShouldEnd && Round < 9999 + GhostRounds && !SaveScreen && !LoadScreen && !SettingsScreen) { // Game Started
